@@ -6,21 +6,26 @@ Este documento define un sistema de **arquitectura de tres capas** diseñado par
 
 ## Setup
 
-Para garantizar la reproducibilidad y evitar conflictos de dependencias, se recomienda utilizar un entorno virtual aislado.
+Para garantizar la reproducibilidad y evitar conflictos de dependencias, se recomienda utilizar un entorno virtual aislado con Conda.
 
 1.  **Crear el entorno:**
     ```bash
-    python3 -m venv .venv
+    conda create --name <project>_env python=3.10 -y
     ```
 
 2.  **Activar el entorno:**
     ```bash
-    source .venv/bin/activate
+    conda activate <project>_env
     ```
 
 3.  **Instalar dependencias:**
     ```bash
     pip install -r requirements.txt
+    ```
+
+4.  **Visualizar entornos disponibles:**
+    ```bash
+    conda env list
     ```
 
 ## 3-Layer Architecture
