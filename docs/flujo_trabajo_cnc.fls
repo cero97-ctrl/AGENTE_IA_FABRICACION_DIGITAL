@@ -1,7 +1,0 @@
-PWD /home/cero/MEGA/VS_CODE_WORKSPACE/AGENTE_IA_FABRICACION_DIGITAL/docs
-INPUT /etc/texmf/web2c/texmf.cnf
-INPUT /usr/share/texmf/web2c/texmf.cnf
-INPUT /usr/share/texlive/texmf-dist/web2c/texmf.cnf
-INPUT /var/lib/texmf/web2c/pdftex/pdflatex.fmt
-INPUT /home/cero/MEGA/VS_CODE_WORKSPACE/AGENTE_IA_FABRICACION_DIGITAL/docs/flujo_trabajo_cnc.tex
-OUTPUT flujo_trabajo_cnc.log
