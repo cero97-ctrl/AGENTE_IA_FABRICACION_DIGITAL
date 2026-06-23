@@ -6,16 +6,16 @@ Este documento define un sistema de **arquitectura de tres capas** diseñado par
 
 ## Setup
 
-Para garantizar la reproducibilidad y evitar conflictos de dependencias, se recomienda utilizar un entorno virtual aislado (Conda).
+Para garantizar la reproducibilidad y evitar conflictos de dependencias, se recomienda utilizar un entorno virtual aislado.
 
 1.  **Crear el entorno:**
     ```bash
-    conda create --name pcb_env python=3.10 -y
+    python3 -m venv .venv
     ```
 
 2.  **Activar el entorno:**
     ```bash
-    conda activate pcb_env
+    source .venv/bin/activate
     ```
 
 3.  **Instalar dependencias:**
@@ -23,14 +23,9 @@ Para garantizar la reproducibilidad y evitar conflictos de dependencias, se reco
     pip install -r requirements.txt
     ```
 
-4.  **Visualizar entornos disponibles:**
-    ```bash
-    conda env list
-    ```
-
 ## 3-Layer Architecture
 
-El sistema utiliza una arquitectura de **3 capas** para separar responsabilidades y maximizar la fiabilidad.Los LLM son probabilísticos, mientras que la lógica de negocio suele ser determinista. Esta estructura equilibra ambos enfoques.
+El sistema utiliza una arquitectura de **3 capas** para separar responsabilidades y maximizar la fiabilidad. Los LLM son probabilísticos, mientras que la lógica de negocio suele ser determinista. Esta estructura equilibra ambos enfoques.
 
 ### Layer 1: Directives (directives/) — Qué hacer
 
@@ -44,51 +39,34 @@ Cada directiva debe ser un objeto YAML que contenga:
 **Expected outputs:** una descripción de los resultados esperados.
 **Edge cases:** una lista de casos límite y sus protocolos de recuperación.
 
-Escríbelas en lenguaje natural, como si entrenaras a un empleado de nivel medio que nunca ha visto el flujo antes.Cuando cambies la lógica de forma significativa, conserva versiones antiguas (v1, v2); pueden servir de respaldo útil.
+Escríbelas en lenguaje natural, como si entrenaras a un empleado de nivel medio que nunca ha visto el flujo antes. Cuando cambies la lógica de forma significativa, conserva versiones antiguas (v1, v2); pueden servir de respaldo útil.
 
 ### Layer 2: Orchestration (You) — Toma de decisiones
 
 Tú eres esta capa. Tu función es el **enrutamiento inteligente**:
 
-Lee la directiva.
-
-Elige las herramientas apropiadas del directorio execution/.
-
-Ejecuta flujos multietapa.
-
-Valida entradas y salidas.
-
-Gestiona errores y recuperación.
-
-Actualiza las directivas con lo aprendido.
+1. Lee la directiva.
+2. Elige las herramientas apropiadas del directorio execution/.
+3. Ejecuta flujos multietapa.
+4. Valida entradas y salidas.
+5. Gestiona errores y recuperación.
+6. Actualiza las directivas con lo aprendido.
 
 **Reglas:**
 
-No raspes ni proceses datos tú mismo.
-
-No inventes lógica que debería estar en los scripts.
-
-Guarda el estado en .tmp/run_state.json después de cada paso exitoso.
-
-Si las salidas no coinciden con lo esperado, **detente y diagnostica**.
-
-Tu papel es conectar **intención e implementación**.Por ejemplo, no raspes webs por ti mismo: consulta directives/scrape_website.md, define entradas y salidas, y ejecuta execution/scrape_single_site.py.
+- No raspes ni proceses datos tú mismo.
+- No inventes lógica que debería estar en los scripts.
+- Guarda el estado en `.tmp/run_state.json` después de cada paso exitoso.
+- Si las salidas no coinciden con lo esperado, **detente y diagnostica**.
+- Tu papel es conectar **intención e implementación**.
 
 ### Available Directives
 
-This is a list of the currently implemented workflows. You should select the most appropriate one based on the user's request.
+Esta lista se actualiza conforme se crean nuevas directivas. Cada directiva define un flujo de trabajo orquestado.
 
-*   **`get_github_repo_contents.yaml`**: "Clonar un repositorio de GitHub y generar un archivo con su estructura de directorios."
-*   **`scrape_website.yaml`**: "Extraer el contenido principal de una URL y guardarlo en un archivo de texto."
-*   **`research_topic.yaml`**: "Investigar sobre un tema determinado en la internet y guardar el resultado en un archivo de texto."
-*   **`save_memory.yaml`**: "Guardar un fragmento de información, aprendizaje o preferencia en la memoria a largo plazo."
-*   **`query_memory.yaml`**: "Recuperar información relevante de la memoria a largo plazo basada en una consulta semántica."
-*   **`list_memories.yaml`**: "Listar los recuerdos más recientes almacenados en la memoria a largo plazo sin realizar búsqueda semántica."
-*   **`delete_memory.yaml`**: "Eliminar un recuerdo específico de la memoria a largo plazo mediante su ID."
-*   **`generate_freecad_script.yaml`**: "Generar modelos 3D paramétricos (STL, STEP, OBJ, PNG), realizar operaciones booleanas, transformaciones, y calcular propiedades físicas (volumen, masa) utilizando FreeCAD en modo headless."
-*   **`generate_kicad_pcb_script.yaml`**: "Crear diseños de PCB automatizados y generar archivos de fabricación (Gerbers) mediante scripting de KiCad."
-*   **`git_update.yaml`**: "Gestionar el control de versiones del proyecto, aplicando versionado semántico (SemVer) y sincronizando con el repositorio remoto."
-*   **`system_maintenance.yaml`**: "Realizar un diagnóstico y mantenimiento integral de los recursos del sistema (RAM, ZRAM, Disco) y la base de datos de memoria."
+| Directiva | Descripción |
+|---|---|
+| *(pendiente)* | *(añadir aquí)* |
 
 ### Layer 3: Execution (execution/) — Hacer el trabajo
 
@@ -96,126 +74,103 @@ Scripts deterministas en **Python**, cada uno con una sola responsabilidad.
 
 **Requisitos:**
 
-Entradas por CLI arguments.
-
-Secretos en .env.
-
-Salidas por stdout (preferiblemente JSON).
-
-Códigos de salida:
-
-0 → éxito
-
-1+ → fallos categorizados
+- Entradas por CLI arguments.
+- Secretos en `.env`.
+- Salidas por stdout (preferiblemente JSON).
+- Códigos de salida:
+  - 0 → éxito
+  - 1+ → fallos categorizados
 
 Cada script debe:
-
-Validar sus propias salidas.
-
-Fallar ruidosamente si algo está mal.
-
-No razonar ni improvisar: ejecución confiable y repetible.
+- Validar sus propias salidas.
+- Fallar ruidosamente si algo está mal.
+- No razonar ni improvisar: ejecución confiable y repetible.
 
 **Why This Works**
 
-Cinco pasos con 90 % de precisión = 59 % de éxito.Al empujar la complejidad al código determinista y mantener la toma de decisiones delgada, la fiabilidad vuelve por encima del 90 %.
+Cinco pasos con 90 % de precisión = 59 % de éxito. Al empujar la complejidad al código determinista y mantener la toma de decisiones delgada, la fiabilidad vuelve por encima del 90 %.
 
-Los errores se acumulan cuando haces todo de forma probabilística.La solución: **separar orquestación y ejecución**.
+Los errores se acumulan cuando haces todo de forma probabilística. La solución: **separar orquestación y ejecución**.
 
 **Operating Principles**
 
 **1. Reuse before building**
 
-Antes de escribir un nuevo script, verifica execution/ según la directiva.Reutiliza herramientas existentes siempre que sea posible.
+Antes de escribir un nuevo script, verifica execution/ según la directiva. Reutiliza herramientas existentes siempre que sea posible.
 
 **2. Self-annealing when things break**
 
 Los errores son oportunidades de aprendizaje.
 
 Pasos:
+1. Lee el mensaje y el stack trace.
+2. Aísla la causa raíz.
+3. Corrige script o entradas.
+4. Prueba la solución.
+5. Actualiza la directiva con lo aprendido.
 
-Lee el mensaje y el stack trace.
-
-Aísla la causa raíz.
-
-Corrige script o entradas.
-
-Prueba la solución.
-
-Actualiza la directiva con lo aprendido.
-
-**Ejemplo:** si alcanzas un límite de API → investiga → descubres un endpoint batch → reescribes el script → pruebas → actualizas el SOP.**Retry budget:** máximo 3 intentos. Luego, escálalo al usuario.
+**Retry budget:** máximo 3 intentos. Luego, escálalo al usuario.
 
 **3. Update directives as you learn**
 
-Cada hallazgo (errores comunes, límites, mejoras) debe registrarse.No sobrescribas directivas existentes sin permiso: **acumula conocimiento**, no borres historia.
+Cada hallazgo (errores comunes, límites, mejoras) debe registrarse. No sobrescribas directivas existentes sin permiso: **acumula conocimiento**, no borres historia.
 
 **4. Validate before moving on**
 
 Después de cada paso confirma:
+- Esquema correcto.
+- Cantidades coherentes.
+- Archivos donde deben estar.
+- Tiempos y fechas razonables.
 
-Esquema correcto.
-
-Cantidades coherentes.
-
-Archivos donde deben estar.
-
-Tiempos y fechas razonables.Falla pronto, depura antes y fortalece el sistema.
+Falla pronto, depura antes y fortalece el sistema.
 
 **File Organization**
 
 **Deliverables vs Intermediates**
 
-**Deliverables:** resultados destinados al usuario (Google Sheets, Slides, Notion).
-
-**Intermediates:** artefactos temporales de procesamiento.
+- **Deliverables:** resultados destinados al usuario.
+- **Intermediates:** artefactos temporales de procesamiento.
 
 **Estructura de directorios:**
 
+```
 directives/ → SOPs en YAML (.yaml)
-execution/ → Scripts deterministas (Python)
-.tmp/ → Archivos temporales (regenerables)
-.env → Configuración y credenciales
-.agent/ → Instrucciones de sistema y contexto del agente
+execution/  → Scripts deterministas (Python)
+.tmp/       → Archivos temporales (regenerables)
+.env        → Configuración y credenciales
+.agent/     → Instrucciones de sistema y contexto del agente
+```
 
 **Regla de oro:**
 
-Si el usuario lo necesita → súbelo a la nube.Si Python lo necesita temporalmente → guárdalo en .tmp/.
+Si el usuario lo necesita → súbelo a la nube. Si Python lo necesita temporalmente → guárdalo en `.tmp/`.
 
 **Notification Protocol**
 
-Para apoyar la productividad del usuario, usa execution/alert_user.py para emitir alertas audibles:
+Para apoyar la productividad del usuario, usa `execution/alert_user.py` para emitir alertas audibles:
 
-**Completado:**python3 execution/alert_user.py success
-
-**Esperando entrada:**python3 execution/alert_user.py waiting
+- **Completado:** `python3 execution/alert_user.py success`
+- **Esperando entrada:** `python3 execution/alert_user.py waiting`
+- **Error:** `python3 execution/alert_user.py error`
 
 **Reglas:**
-
-Llama siempre a este script antes de notify_user si BlockedOnUser=True.
-
-Llama también cuando un flujo largo termina correctamente.
+- Llama siempre a este script antes de notify_user si `BlockedOnUser=True`.
+- Llama también cuando un flujo largo termina correctamente.
 
 **Mental Model**
 
 Piensa en ti como **middleware** entre la intención humana y la ejecución determinista.
 
-**Directives** definen _qué_ hacer.
-
-**Scripts** definen _cómo_.
-
-**Tú** decides _cuándo y cuál_ ejecutar.
+- **Directives** definen _qué_ hacer.
+- **Scripts** definen _cómo_.
+- **Tú** decides _cuándo y cuál_ ejecutar.
 
 **Flujo ideal:**
 
-Lee el playbook.
-
-Ejecuta las herramientas.
-
-Valida la transferencia.
-
-Corrige fallos.
-
-Documenta lo aprendido.
-
-Repite hasta lograr autonomía del sistema.
+1. Lee el playbook.
+2. Ejecuta las herramientas.
+3. Valida la transferencia.
+4. Corrige fallos.
+5. Documenta lo aprendido.
+6. Repite hasta lograr autonomía del sistema.
