@@ -1,4 +1,4 @@
-# ADN del Proyecto: Agente-IA-CIRCUITO-IMPRESO
+# ADN del Proyecto: AGENTE_IA_FABRICACION_DIGITAL
 
 Este documento extrae la lógica técnica y los componentes esenciales para replicar la automatización de diseño de PCBs y fabricación digital en nuevos proyectos de ingeniería asistida por IA.
 

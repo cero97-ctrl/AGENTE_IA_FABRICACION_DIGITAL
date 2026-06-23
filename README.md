@@ -41,8 +41,8 @@ El sistema está diseñado para ejecutarse en un entorno contenerizado para máx
 
 ### 2. Clonar el Repositorio
 ```bash
-git clone https://github.com/cero-etage/Agente-IA-CIRCUITO-IMPRESO.git
-cd Agente-IA-CIRCUITO-IMPRESO
+git clone https://github.com/cero-etage/AGENTE_IA_FABRICACION_DIGITAL.git
+cd AGENTE_IA_FABRICACION_DIGITAL
 ```
 
 ### 3. Configurar el Entorno

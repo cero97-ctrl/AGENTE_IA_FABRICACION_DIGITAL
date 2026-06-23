@@ -43,7 +43,7 @@ def chat_openrouter(messages, model="anthropic/claude-3.5-sonnet", system_instru
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
         # OpenRouter recomienda estos headers para identificar tu app en sus rankings
-        "HTTP-Referer": "https://github.com/cero-etage/Agente-IA-CIRCUITO-IMPRESO",
+        "HTTP-Referer": "https://github.com/cero-etage/AGENTE_IA_FABRICACION_DIGITAL",
         "X-Title": "Agente IA Circuito Impreso"
     }
 
