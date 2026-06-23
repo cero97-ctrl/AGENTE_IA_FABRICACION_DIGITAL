@@ -27,3 +27,13 @@ backups/
 .idea/
 .DS_Store
 Thumbs.db
+
+# LaTeX
+*.aux
+*.out
+*.toc
+*.synctex.gz
+*.fdb_latexmk
+*.fls
+*.log
+
