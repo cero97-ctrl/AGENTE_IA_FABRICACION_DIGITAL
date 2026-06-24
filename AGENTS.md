@@ -9,7 +9,7 @@ Bot de Telegram orquestado por IA para **fabricación digital**: diseño CAD 3D 
 - **Python 3.10+** con `python-telegram-bot`, `google-generativeai`, `chromadb`, `docker`
 - **Contenedor Docker** para FreeCAD y KiCad headless
 - **Memoria persistente** vía ChromaDB
-- **LLMs**: Gemini (primario), OpenRouter/Groq/Ollama (respaldo)
+- **LLMs**: Groq (primario), Gemini/OpenRouter/Ollama (respaldo)
 
 ## Estructura del proyecto
 
