@@ -32,6 +32,7 @@ Para cada solicitud, sigue este flujo estrictamente:
 - `execution/`: Scripts deterministas.
 - `.tmp/`: Artefactos temporales y estado de ejecución.
 - `.env`: Credenciales (NUNCA hardcodear en scripts).
+- `docs/`: Documentación del proyecto. Por defecto se escribe en **LaTeX**, a menos que se indique explícitamente otro formato (ej. Markdown).
 
 ## 7. Autorización de Ejecución
 - **Ejecución de Scripts:** El agente procesa los scripts y genera los resultados lógicos internamente para verificar su integridad.
