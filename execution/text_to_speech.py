@@ -6,6 +6,7 @@ import os
 from gtts import gTTS
 from pydub import AudioSegment
 
+
 def main():
     parser = argparse.ArgumentParser(description="Convertir texto a audio (TTS).")
     parser.add_argument("--text", required=True, help="Texto a convertir.")
@@ -35,6 +36,7 @@ def main():
     except Exception as e:
         print(json.dumps({"status": "error", "message": str(e)}))
         sys.exit(1)
+
 
 if __name__ == "__main__":
     main()

@@ -9,6 +9,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Responde al comando /start."""
     user = update.effective_user
@@ -16,10 +17,12 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         START_MESSAGE.format(mention=user.mention_html()),
     )
 
+
 async def status(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Responde al comando /status con el estado de la CNC."""
     # En el futuro, aquí conectaremos con la clase que controla la CNC real
     await update.message.reply_text(f"Estado de la CNC: {CNC_STATUS_IDLE}")
+
 
 def run_bot(token: str) -> None:
     """Inicia el bot y espera por comandos."""

@@ -9,8 +9,10 @@ import re
 import uuid as uuid_module
 import datetime
 
+
 def new_uuid():
     return str(uuid_module.uuid4())
+
 
 # ---------------------------------------------------------------------------
 # Pin definitions for each symbol type
@@ -54,19 +56,24 @@ PIN_INFO = {
 # ---------------------------------------------------------------------------
 # Library symbol S-expression templates
 # ---------------------------------------------------------------------------
+
+
 def _font(sz=1.27):
     return f'(font (size {sz} {sz}))'
+
 
 def _effects(sz=1.27, hide=False, justify=""):
     h = " hide" if hide else ""
     j = f' (justify {justify})' if justify else ""
     return f'(effects {_font(sz)}{j}{h})'
 
+
 def _pin(ptype, x, y, angle, length, name, number):
     return (f'        (pin {ptype} line (at {x} {y} {angle}) (length {length})\n'
             f'          (name "{name}" {_effects()})\n'
             f'          (number "{number}" {_effects()})\n'
             f'        )')
+
 
 def lib_sym_resistor():
     return f"""    (symbol "Device:R"
@@ -85,6 +92,7 @@ def lib_sym_resistor():
 {_pin("passive", 0, -3.81, 90, 1.27, "~", "2")}
       )
     )"""
+
 
 def lib_sym_capacitor():
     return f"""    (symbol "Device:C"
@@ -105,6 +113,7 @@ def lib_sym_capacitor():
 {_pin("passive", 0, -3.81, 90, 2.794, "~", "2")}
       )
     )"""
+
 
 def lib_sym_cpolarized():
     return f"""    (symbol "Device:C_Polarized"
@@ -130,6 +139,7 @@ def lib_sym_cpolarized():
       )
     )"""
 
+
 def lib_sym_led():
     return f"""    (symbol "Device:LED"
       (pin_numbers hide)
@@ -152,6 +162,7 @@ def lib_sym_led():
       )
     )"""
 
+
 def lib_sym_diode():
     return f"""    (symbol "Device:D"
       (pin_numbers hide)
@@ -173,6 +184,7 @@ def lib_sym_diode():
 {_pin("passive", 3.81, 0, 180, 2.54, "A", "2")}
       )
     )"""
+
 
 def lib_sym_ne555():
     return f"""    (symbol "Timer:NE555"
@@ -197,6 +209,7 @@ def lib_sym_ne555():
       )
     )"""
 
+
 LIB_SYMBOL_GENERATORS = {
     "Device:R": lib_sym_resistor,
     "Device:C": lib_sym_capacitor,
@@ -209,11 +222,13 @@ LIB_SYMBOL_GENERATORS = {
 # ---------------------------------------------------------------------------
 # Classification helpers
 # ---------------------------------------------------------------------------
+
+
 def classify_component(comp):
     """Return (lib_id, footprint) for a component dict."""
     ctype = (comp.get("type") or "").lower()
-    cval  = (comp.get("value") or "").lower()
-    
+    cval = (comp.get("value") or "").lower()
+
     if "resistor" in ctype or "resistencia" in ctype:
         lib_id = "Device:R"
         fp = "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P7.62mm_Horizontal"
@@ -238,10 +253,12 @@ def classify_component(comp):
         fp = "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P7.62mm_Horizontal"
     return lib_id, fp
 
+
 # ---------------------------------------------------------------------------
 # Stub direction from pin body angle (opposite direction)
 # ---------------------------------------------------------------------------
 STUB_LEN = 5.08  # 2 grid units
+
 
 def stub_offset(body_angle):
     """Return (dx, dy) for wire stub extending AWAY from body."""
@@ -252,6 +269,7 @@ def stub_offset(body_angle):
         270: (0, STUB_LEN),        # body up    → stub down
     }[body_angle]
 
+
 def label_angle(body_angle):
     """Label text direction at stub end."""
     return {0: 180, 90: 90, 180: 0, 270: 270}[body_angle]
@@ -259,6 +277,8 @@ def label_angle(body_angle):
 # ---------------------------------------------------------------------------
 # Main generator
 # ---------------------------------------------------------------------------
+
+
 def generate_kicad_sch(design_json, output_file):
     # --- Parse input JSON ---
     try:
@@ -292,12 +312,12 @@ def generate_kicad_sch(design_json, output_file):
     for comp in components:
         lib_id, fp = classify_component(comp)
         used_libs.add(lib_id)
-        
+
         # Fallback: Si no hay 'value', usar 'model' (útil para componentes específicos como BPW34)
         val = comp.get("value", "")
         if not val or val == "?":
             val = comp.get("model", "?")
-            
+
         comp_infos.append({
             "ref": comp.get("ref", "U?"),
             "value": val,
@@ -315,12 +335,18 @@ def generate_kicad_sch(design_json, output_file):
             if "-" in node:
                 ref, pin = node.split("-", 1)
                 pin_norm = pin.lower()
-                if "cathode" in pin_norm or pin_norm == "k": pin = "1"
-                elif "anode" in pin_norm or pin_norm == "a": pin = "2"
-                elif pin_norm in ("pos", "+"): pin = "1"
-                elif pin_norm in ("neg", "-"): pin = "2"
-                elif "vcc" in pin_norm: pin = "8"
-                elif "gnd" in pin_norm: pin = "1"
+                if "cathode" in pin_norm or pin_norm == "k":
+                    pin = "1"
+                elif "anode" in pin_norm or pin_norm == "a":
+                    pin = "2"
+                elif pin_norm in ("pos", "+"):
+                    pin = "1"
+                elif pin_norm in ("neg", "-"):
+                    pin = "2"
+                elif "vcc" in pin_norm:
+                    pin = "8"
+                elif "gnd" in pin_norm:
+                    pin = "1"
                 pin_to_net[(ref, pin)] = net_name
 
     # --- Auto-layout: place components in a grid ---
@@ -362,7 +388,7 @@ def generate_kicad_sch(design_json, output_file):
         sym_uuid = new_uuid()
         cx, cy = ci["x"], ci["y"]
         lib_id = ci["lib_id"]
-        
+
         lines.append(f'  (symbol (lib_id "{lib_id}") (at {cx} {cy} 0) (unit 1)')
         lines.append(f'    (in_bom yes) (on_board yes)')
         lines.append(f'    (uuid "{sym_uuid}")')
@@ -370,7 +396,7 @@ def generate_kicad_sch(design_json, output_file):
         lines.append(f'    (property "Value" "{ci["value"]}" (at {cx} {cy + 5.08} 0) {_effects()})')
         lines.append(f'    (property "Footprint" "{ci["footprint"]}" (at {cx} {cy} 0) {_effects(hide=True)})')
         lines.append(f'    (property "Datasheet" "~" (at {cx} {cy} 0) {_effects(hide=True)})')
-        
+
         if ci["note"]:
             lines.append(f'    (property "Note" "{ci["note"]}" (at {cx} {cy + 7.62} 0) {_effects(hide=True)})')
 

@@ -1,5 +1,13 @@
 #!/usr/bin/env python3
-import os, sys, json, zipfile, shutil, argparse, subprocess, time
+import os
+import sys
+import json
+import zipfile
+import shutil
+import argparse
+import subprocess
+import time
+
 
 def generate_gerbers(board_path, output_dir):
     """
@@ -47,6 +55,7 @@ def generate_gerbers(board_path, output_dir):
     drill_writer.SetFormat(True, pcbnew.EXCELLON_WRITER.DECIMAL_FORMAT, 3, 3)
     drill_writer.CreateDrillandMapFilesSet(output_dir, True, False)
 
+
 def zip_gerbers(gerber_dir, zip_path):
     """Zips the contents of the gerber directory."""
     with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zf:
@@ -54,8 +63,10 @@ def zip_gerbers(gerber_dir, zip_path):
             for file in files:
                 zf.write(os.path.join(root, file), os.path.basename(file))
 
+
 def run_gerber_generation():
-    parser = argparse.ArgumentParser(description="Genera un paquete de fabricación (Gerber+Drill) desde un archivo .kicad_pcb.")
+    parser = argparse.ArgumentParser(
+        description="Genera un paquete de fabricación (Gerber+Drill) desde un archivo .kicad_pcb.")
     parser.add_argument("--board", required=True, help="Ruta al archivo .kicad_pcb de entrada.")
     parser.add_argument("--output-zip", required=True, help="Ruta del archivo ZIP de salida.")
     args = parser.parse_args()
@@ -63,7 +74,7 @@ def run_gerber_generation():
     # Paths are relative to the sandbox environment
     board_file = args.board
     output_zip_file = args.output_zip
-    
+
     # Usar un directorio temporal en la misma ubicación que la salida (por ejemplo, /mnt/out)
     # Esto asegura que los archivos temporales sean visibles en .out/ y se limpien con /limpiar
     gerber_temp_dir = os.path.join(os.path.dirname(output_zip_file), "gerbers_temp")
@@ -72,7 +83,8 @@ def run_gerber_generation():
         print(json.dumps({"status": "error", "message": f"Archivo de placa no encontrado: {board_file}"}))
         sys.exit(1)
 
-    if os.path.exists(gerber_temp_dir): shutil.rmtree(gerber_temp_dir)
+    if os.path.exists(gerber_temp_dir):
+        shutil.rmtree(gerber_temp_dir)
     os.makedirs(gerber_temp_dir)
 
     try:
@@ -84,6 +96,7 @@ def run_gerber_generation():
         print(json.dumps({"status": "error", "message": str(e)}))
         sys.exit(1)
 
+
 def start_xvfb():
     """Inicia el servidor gráfico virtual si no está corriendo."""
     os.environ['DISPLAY'] = ':99'
@@ -91,7 +104,8 @@ def start_xvfb():
     try:
         if os.system('pgrep Xvfb > /dev/null') != 0:
             print('Iniciando servidor gráfico virtual (Xvfb)...', file=sys.stderr)
-            xvfb_proc = subprocess.Popen(['Xvfb', ':99', '-screen', '0', '1024x768x24', '-ac', '+extension', 'GLX', '+render', '-noreset'])
+            xvfb_proc = subprocess.Popen(['Xvfb', ':99', '-screen', '0', '1024x768x24',
+                                         '-ac', '+extension', 'GLX', '+render', '-noreset'])
             time.sleep(3)
             if xvfb_proc.poll() is not None:
                 raise RuntimeError(f"Xvfb terminó inesperadamente. Código: {xvfb_proc.returncode}")
@@ -99,11 +113,12 @@ def start_xvfb():
         raise RuntimeError(f"Error fatal al iniciar Xvfb: {e}")
     return xvfb_proc
 
+
 if __name__ == "__main__":
     xvfb_proc = None
     try:
         xvfb_proc = start_xvfb()
-        import pcbnew # Importar después de iniciar Xvfb
+        import pcbnew  # Importar después de iniciar Xvfb
         run_gerber_generation()
     except Exception as e:
         print(json.dumps({"status": "error", "message": str(e)}), file=sys.stderr)

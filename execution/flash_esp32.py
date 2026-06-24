@@ -39,13 +39,13 @@ def test_serial_connection(port, baud=115200, timeout=2):
         ser.rts = False
         time.sleep(0.1)
         ser.reset_input_buffer()
-        
+
         # Enviar un byte y ver si hay eco o respuesta
         ser.write(b'\x07\x07\x12\x20' + b'\x55' * 32)
         time.sleep(0.5)
         response = ser.read(ser.in_waiting or 1)
         ser.close()
-        
+
         if response:
             return True, f"Recibidos {len(response)} bytes de respuesta"
         else:
@@ -96,21 +96,21 @@ def main():
     # --- Detección automática del puerto ---
     print("🚀 FLASHEO ESP32-S3 (ADAPTADOR CH340)")
     print("─" * 40)
-    
+
     port = find_esp_port()
     if not port:
         print("❌ No se detectó ningún dispositivo ESP32-S3.")
         print("   Verifica que el cable USB-C esté bien conectado.")
         return
     print(f"✅ Dispositivo detectado en: {port}")
-    
+
     # --- Verificar permisos ---
     if not os.access(port, os.R_OK | os.W_OK):
         print(f"❌ Sin permisos para acceder a {port}.")
         print(f"   Ejecuta: sudo chmod 666 {port}")
         print(f"   O añádete al grupo dialout: sudo usermod -aG dialout $USER")
         return
-    
+
     # --- Buscar firmware ---
     tmp_dir = os.path.join(
         os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
@@ -167,7 +167,7 @@ def main():
         "--after", "no-reset",
         "chip-id"
     ]
-    
+
     if not run_command(check_cmd):
         print()
         print("❌ No se pudo conectar al ESP32-S3.")
@@ -177,7 +177,7 @@ def main():
         print("  2. Verifica que TX y RX estén cruzados (TX->RX, RX->TX).")
         print("  3. Asegúrate de estar usando el puerto etiquetado como 'UART' en la placa.")
         print()
-        
+
         retry = input("¿Quieres reintentar? (s/n): ").strip().lower()
         if retry == 's':
             if not run_command(check_cmd):

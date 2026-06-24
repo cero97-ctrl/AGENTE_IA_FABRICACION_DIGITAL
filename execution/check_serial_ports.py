@@ -2,11 +2,12 @@
 import sys
 import serial.tools.list_ports
 
+
 def main():
     print("🔍 Buscando dispositivos seriales (ESP32/Arduino)...")
-    
+
     ports = serial.tools.list_ports.comports()
-    
+
     if not ports:
         print("❌ No se detectaron puertos seriales.")
         print("   Posibles causas:")
@@ -24,6 +25,7 @@ def main():
         print(f"     HWID:   {port.hwid}")
         print(f"     ID:     VID:{vid} PID:{pid}")
         print("-" * 30)
+
 
 if __name__ == "__main__":
     main()

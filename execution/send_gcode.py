@@ -5,6 +5,7 @@ import argparse
 import sys
 import os
 
+
 def stream_gcode(port, baudrate, gcode_file):
     """
     Envía un archivo G-Code a una máquina CNC con GRBL, línea por línea.
@@ -34,13 +35,13 @@ def stream_gcode(port, baudrate, gcode_file):
     # Enviar el archivo
     with open(gcode_file, 'r') as f:
         for line in f:
-            l = line.strip() # Limpiar espacios y saltos de línea
+            l = line.strip()  # Limpiar espacios y saltos de línea
             if not l or l.startswith(';'):
-                continue # Ignorar líneas vacías o comentarios
+                continue  # Ignorar líneas vacías o comentarios
 
             print(f"   -> {l}")
-            s.write((l + '\n').encode('utf-8')) # Enviar línea
-            
+            s.write((l + '\n').encode('utf-8'))  # Enviar línea
+
             # Esperar respuesta 'ok' de GRBL
             response = s.readline().decode('utf-8').strip()
             print(f"   <- {response}")
@@ -52,6 +53,7 @@ def stream_gcode(port, baudrate, gcode_file):
     s.close()
     print("\n🎉 Trabajo finalizado. Conexión cerrada.")
     return True
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Stream G-Code to a GRBL-based CNC.")

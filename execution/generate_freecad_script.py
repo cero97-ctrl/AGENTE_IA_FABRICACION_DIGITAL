@@ -4,6 +4,7 @@ import argparse
 import os
 import sys
 
+
 def generate_script(params, output_script_path):
     shape = params.get('shape', 'box')
     length = params.get('length', 10)
@@ -131,7 +132,7 @@ def generate_script(params, output_script_path):
         # Los engranajes no necesitan boolean cut para agujeros, lo maneja FCGear internamente
         # Desactivamos la lógica de hole_radius para este shape
         hole_radius = 0
-    else: # Default to a box
+    else:  # Default to a box
         obj_name = 'DefaultBox'
         script_lines.extend([
             f"obj = doc.addObject('Part::Box', '{obj_name}')",
@@ -149,7 +150,7 @@ def generate_script(params, output_script_path):
             f"stud.Radius = {stud_radius}",
             f"stud.Height = {stud_height}",
         ])
-        
+
         # Posicionar el pivote (Centrado arriba)
         if shape == 'box':
             script_lines.append(f"stud.Placement.Base = FreeCAD.Vector({length}/2, {width}/2, {height})")
@@ -158,7 +159,7 @@ def generate_script(params, output_script_path):
         else:
             # Cylinder/Cone (Centrados en Z por defecto, top en Height)
             script_lines.append(f"stud.Placement.Base = FreeCAD.Vector(0, 0, {height})")
-            
+
         script_lines.extend([
             "fuse = doc.addObject('Part::MultiFuse', 'Fuse')",
             f"fuse.Shapes = [doc.getObject('{obj_name}'), stud]",
@@ -166,7 +167,7 @@ def generate_script(params, output_script_path):
             "stud.ViewObject.Visibility = False",
             "doc.recompute()",
         ])
-        obj_name = "Fuse" # Actualizar el nombre del objeto a exportar
+        obj_name = "Fuse"  # Actualizar el nombre del objeto a exportar
 
     # --- Lógica para Agujeros (Boolean Cut) ---
     if hole_radius > 0:
@@ -176,12 +177,12 @@ def generate_script(params, output_script_path):
             "hole = doc.addObject('Part::Cylinder', 'HoleTool')",
             f"hole.Radius = {hole_radius}",
         ])
-        
+
         # Calcular altura del agujero (un poco más largo para asegurar el corte)
         total_h = height + (stud_height if stud_radius > 0 else 0)
         hole_h = total_h + 10 if shape in ['box', 'cylinder', 'cone'] else (radius * 2.5 if shape == 'sphere' else 50)
         script_lines.append(f"hole.Height = {hole_h}")
-        
+
         # Posicionar el agujero (Centrado)
         if shape == 'box':
             script_lines.append(f"hole.Placement.Base = FreeCAD.Vector({length}/2, {width}/2, -5)")
@@ -190,7 +191,7 @@ def generate_script(params, output_script_path):
         else:
             # Cylinder/Cone/Torus (Centrados en Z por defecto)
             script_lines.append("hole.Placement.Base = FreeCAD.Vector(0, 0, -5)")
-            
+
         script_lines.extend([
             "cut = doc.addObject('Part::Cut', 'Cut')",
             f"cut.Base = doc.getObject('{obj_name}')",
@@ -199,7 +200,7 @@ def generate_script(params, output_script_path):
             "hole.ViewObject.Visibility = False",
             "doc.recompute()",
         ])
-        obj_name = "Cut" # Actualizar el nombre del objeto a exportar
+        obj_name = "Cut"  # Actualizar el nombre del objeto a exportar
 
     # --- Lógica para Redondeo (Fillet) ---
     if fillet_radius > 0:
@@ -221,10 +222,12 @@ def generate_script(params, output_script_path):
 
     # --- Lógica para Rotación ---
     if rotate_axis and rotate_angle != 0:
-        axis_vec = "FreeCAD.Vector(0,0,1)" # Default Z
-        if rotate_axis.lower() == 'x': axis_vec = "FreeCAD.Vector(1,0,0)"
-        elif rotate_axis.lower() == 'y': axis_vec = "FreeCAD.Vector(0,1,0)"
-        
+        axis_vec = "FreeCAD.Vector(0,0,1)"  # Default Z
+        if rotate_axis.lower() == 'x':
+            axis_vec = "FreeCAD.Vector(1,0,0)"
+        elif rotate_axis.lower() == 'y':
+            axis_vec = "FreeCAD.Vector(0,1,0)"
+
         script_lines.extend([
             "",
             "# --- Operación de Rotación ---",
@@ -243,7 +246,7 @@ def generate_script(params, output_script_path):
         'Negro': (0.1, 0.1, 0.1), 'Gris': (0.5, 0.5, 0.5)
     }
     rgb = color_map.get(color_name, (0.9, 0.9, 0.9))
-    
+
     script_lines.extend([
         "",
         "# --- Aplicar Color ---",
@@ -367,6 +370,7 @@ def generate_script(params, output_script_path):
     except Exception as e:
         print(json.dumps({"status": "error", "message": f"Error escribiendo script de FreeCAD: {e}"}))
         sys.exit(1)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Genera un script de Python para FreeCAD.")

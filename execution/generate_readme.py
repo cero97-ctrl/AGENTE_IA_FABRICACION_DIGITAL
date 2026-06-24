@@ -44,7 +44,7 @@ def main():
                         description = data.get('goal', 'Sin descripción')
                 except Exception as e:
                     description = f"(Error leyendo YAML: {e})"
-            
+
             entry = f"- **{filename}**: {description}" if description else f"- {filename}"
             directives.append(entry)
 

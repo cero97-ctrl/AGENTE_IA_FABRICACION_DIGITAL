@@ -41,7 +41,7 @@ def main():
         else:
             with open(file_path, 'r', encoding='utf-8') as f:
                 content = f.read()
-                
+
     except Exception as e:
         print(json.dumps({"status": "error", "message": f"Error leyendo archivo: {e}"}))
         sys.exit(1)
@@ -79,11 +79,11 @@ CONTENIDO A TRADUCIR:
 
     # Generar nombre de archivo de salida
     base, ext = os.path.splitext(file_path)
-    
+
     # Si era PDF, la salida será texto/markdown
     if ext.lower() == ".pdf":
         ext = ".txt"
-        
+
     # Simplificar el idioma para el nombre del archivo (ej. "Inglés" -> "ingles")
     lang_suffix = target_lang.lower().split()[0]
     output_path = f"{base}_{lang_suffix}{ext}"
@@ -91,9 +91,9 @@ CONTENIDO A TRADUCIR:
     try:
         with open(output_path, 'w', encoding='utf-8') as f:
             f.write(translated_content.strip())
-        
+
         print(json.dumps({
-            "status": "success", 
+            "status": "success",
             "file_path": output_path
         }))
     except Exception as e:

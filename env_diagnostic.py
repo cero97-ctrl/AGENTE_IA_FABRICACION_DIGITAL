@@ -6,6 +6,7 @@ import shutil
 import json
 import multiprocessing
 
+
 def run_diagnostic():
     """
     Script de diagnóstico adaptado para el proyecto DATA_LOGER_IOT.
@@ -40,7 +41,7 @@ def run_diagnostic():
         try:
             # Verificar si la imagen pcb_sandbox existe
             img_check = subprocess.run(
-                ["docker", "images", "-q", "pcb_sandbox"], 
+                ["docker", "images", "-q", "pcb_sandbox"],
                 capture_output=True, text=True, timeout=5
             )
             has_image = "FOUND" if img_check.stdout.strip() else "NOT FOUND"
@@ -88,18 +89,18 @@ def run_diagnostic():
     write_perm = os.access(cwd, os.W_OK)
     print(f"CWD:            {cwd}")
     print(f"Write Access:   {'OK' if write_perm else 'DENIED'}")
-    
+
     # --- NETWORK & TOOLS ---
     print(f"\n--- NETWORK & TOOLS ---")
     tools = ["git", "curl", "kicad-cli"]
     for tool in tools:
         path = shutil.which(tool)
         print(f"{tool:12}: {'FOUND (' + path + ')' if path else 'NOT FOUND'}")
-    
+
     try:
         # Test conectividad rápida
         socket_test = subprocess.run(
-            ["ping", "-c", "1", "8.8.8.8"], 
+            ["ping", "-c", "1", "8.8.8.8"],
             capture_output=True, timeout=2
         )
         print(f"Internet:       {'CONNECTED' if socket_test.returncode == 0 else 'OFFLINE'}")
@@ -109,6 +110,7 @@ def run_diagnostic():
     print("\n" + "=" * 60)
     print("Por favor, copia esta salida y pégala en el chat.")
     print("=" * 60)
+
 
 if __name__ == "__main__":
     run_diagnostic()

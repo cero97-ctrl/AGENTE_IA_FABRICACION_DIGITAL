@@ -10,6 +10,7 @@ DB_PATH = "data/chat_history.db"
 # Base de datos activa gestionada por db_manager.py
 ACTIVE_DB_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".tmp", "agent_database.db")
 
+
 def init_db():
     os.makedirs("data", exist_ok=True)
     conn = sqlite3.connect(DB_PATH)
@@ -23,6 +24,7 @@ def init_db():
     conn.commit()
     conn.close()
 
+
 def list_history(user_id):
     init_db()
     conn = sqlite3.connect(DB_PATH)
@@ -31,9 +33,10 @@ def list_history(user_id):
     c.execute("SELECT id, timestamp, summary FROM sessions WHERE user_id = ? ORDER BY timestamp DESC LIMIT 10", (user_id,))
     rows = c.fetchall()
     conn.close()
-    
+
     history = [{"id": r["id"], "date": r["timestamp"], "summary": r["summary"]} for r in rows]
     return {"status": "success", "history": history}
+
 
 def search_history(user_id, query):
     init_db()
@@ -41,12 +44,14 @@ def search_history(user_id, query):
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
     # Búsqueda parcial usando LIKE en el resumen
-    c.execute("SELECT id, timestamp, summary FROM sessions WHERE user_id = ? AND summary LIKE ? ORDER BY timestamp DESC", (user_id, f"%{query}%"))
+    c.execute("SELECT id, timestamp, summary FROM sessions WHERE user_id = ? AND summary LIKE ? ORDER BY timestamp DESC",
+              (user_id, f"%{query}%"))
     rows = c.fetchall()
     conn.close()
-    
+
     history = [{"id": r["id"], "date": r["timestamp"], "summary": r["summary"]} for r in rows]
     return {"status": "success", "history": history}
+
 
 def save_session(user_id, summary):
     init_db()
@@ -79,6 +84,7 @@ def save_session(user_id, summary):
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+
 def resume_session(user_id, session_id):
     init_db()
     conn = sqlite3.connect(DB_PATH)
@@ -87,7 +93,7 @@ def resume_session(user_id, session_id):
     c.execute("SELECT context_json FROM sessions WHERE id = ? AND user_id = ?", (session_id, user_id))
     row = c.fetchone()
     conn.close()
-    
+
     if not row:
         return {"status": "error", "message": "Sesión no encontrada."}
 
@@ -100,12 +106,13 @@ def resume_session(user_id, session_id):
         cursor.execute("DELETE FROM chat_history")
         for m in messages:
             cursor.execute("INSERT INTO chat_history (role, content, timestamp) VALUES (?, ?, ?)",
-                          (m["role"], m["content"], m["timestamp"]))
+                           (m["role"], m["content"], m["timestamp"]))
         conn_active.commit()
         conn_active.close()
         return {"status": "success"}
     except Exception as e:
         return {"status": "error", "message": str(e)}
+
 
 def delete_session(user_id, session_id):
     init_db()
@@ -119,6 +126,7 @@ def delete_session(user_id, session_id):
         return {"status": "success"}
     return {"status": "error", "message": "Sesión no encontrada o no pertenece al usuario."}
 
+
 def export_session(user_id, session_id):
     init_db()
     conn = sqlite3.connect(DB_PATH)
@@ -127,14 +135,14 @@ def export_session(user_id, session_id):
     c.execute("SELECT summary, timestamp, context_json FROM sessions WHERE id = ? AND user_id = ?", (session_id, user_id))
     row = c.fetchone()
     conn.close()
-    
+
     if not row:
         return {"status": "error", "message": "Sesión no encontrada."}
-    
+
     filename = f"Export_Sesion_{session_id}_{user_id}.md"
     filepath = os.path.join("docs", filename)
     os.makedirs("docs", exist_ok=True)
-    
+
     try:
         messages = json.loads(row["context_json"])
         with open(filepath, "w", encoding="utf-8") as f:
@@ -148,6 +156,7 @@ def export_session(user_id, session_id):
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--action", required=True, choices=["list", "save", "resume", "delete", "search", "export"])
@@ -156,6 +165,7 @@ if __name__ == "__main__":
     parser.add_argument("--summary", default="Sesión sin resumen")
     parser.add_argument("--query", default="")
     args = parser.parse_args()
-    
-    actions = {"list": lambda: list_history(args.user_id), "save": lambda: save_session(args.user_id, args.summary), "resume": lambda: resume_session(args.user_id, args.session_id), "delete": lambda: delete_session(args.user_id, args.session_id), "search": lambda: search_history(args.user_id, args.query), "export": lambda: export_session(args.user_id, args.session_id)}
+
+    actions = {"list": lambda: list_history(args.user_id), "save": lambda: save_session(args.user_id, args.summary), "resume": lambda: resume_session(args.user_id, args.session_id), "delete": lambda: delete_session(
+        args.user_id, args.session_id), "search": lambda: search_history(args.user_id, args.query), "export": lambda: export_session(args.user_id, args.session_id)}
     print(json.dumps(actions[args.action]()))

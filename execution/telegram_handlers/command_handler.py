@@ -2,11 +2,12 @@ import json
 import os
 import datetime
 import time
-from execution.listen_telegram_helpers import load_config, save_config, PERSONAS, set_persona
-from execution.db_manager import add_reminder, delete_reminders_for_user, get_all_users, get_reminders_by_user, delete_reminder_by_id
+from listen_telegram_helpers import load_config, save_config, PERSONAS, set_persona
+from db_manager import add_reminder, delete_reminders_for_user, get_all_users, get_reminders_by_user, delete_reminder_by_id
 import shutil
 import glob
 import zipfile
+
 
 def _handle_ollama(msg, sender_id, run_tool):
     query = msg.split(" ", 1)[1] if " " in msg else ""
@@ -15,7 +16,8 @@ def _handle_ollama(msg, sender_id, run_tool):
 
     print(f"   🏠 Forzando inferencia local con Ollama para: {query}")
     # Notificar al usuario que se está usando el motor local
-    run_tool("telegram_tool.py", ["--action", "send", "--message", "🏠 Consultando al motor local (Ollama)...", "--chat-id", sender_id])
+    run_tool("telegram_tool.py", ["--action", "send", "--message",
+             "🏠 Consultando al motor local (Ollama)...", "--chat-id", sender_id])
 
     # Llamamos al orquestador forzando el proveedor 'ollama'
     llm_res = run_tool("chat_with_llm.py", ["--prompt", query, "--provider", "ollama"])
@@ -27,13 +29,15 @@ def _handle_ollama(msg, sender_id, run_tool):
     else:
         return "❌ No se obtuvo respuesta del motor local."
 
+
 def _handle_investigar(msg, sender_id, run_tool):
     topic = msg.split(" ", 1)[1] if " " in msg else ""
     if not topic:
         return "⚠️ Uso: /investigar [tema]"
 
     print(f"   🔍 Ejecutando investigación sobre: {topic}")
-    run_tool("telegram_tool.py", ["--action", "send", "--message", f"🕵️‍♂️ Investigando sobre '{topic}'... dame unos segundos.", "--chat-id", sender_id])
+    run_tool("telegram_tool.py", ["--action", "send", "--message",
+             f"🕵️‍♂️ Investigando sobre '{topic}'... dame unos segundos.", "--chat-id", sender_id])
 
     res = run_tool("research_topic.py", ["--query", topic, "--output-file", ".tmp/tg_research.txt"])
 
@@ -61,13 +65,15 @@ Resultados de Búsqueda:
     except Exception as e:
         return f"Error procesando resultados: {e}"
 
+
 def _handle_reporte(msg, sender_id, run_tool):
     topic = msg.split(" ", 1)[1] if " " in msg else ""
     if not topic:
         return "⚠️ Uso: /reporte [tema técnico o de ingeniería]"
 
     print(f"   ️ Generando reporte técnico sobre: {topic}")
-    run_tool("telegram_tool.py", ["--action", "send", "--message", f"👷 Iniciando investigación técnica sobre '{topic}'... Esto tomará unos segundos.", "--chat-id", sender_id])
+    run_tool("telegram_tool.py", ["--action", "send", "--message",
+             f"👷 Iniciando investigación técnica sobre '{topic}'... Esto tomará unos segundos.", "--chat-id", sender_id])
 
     query = f"especificaciones técnicas tutoriales y documentación para {topic}"
     res_search = run_tool("research_topic.py", ["--query", query, "--output-file", ".tmp/tech_research.txt"])
@@ -96,7 +102,8 @@ IMPORTANTE:
 Usa un tono profesional, técnico y preciso.
 Enfócate en la practicidad y la implementación con herramientas libres (Open Source) si aplica.
 """
-        run_tool("telegram_tool.py", ["--action", "send", "--message", "🧠 Analizando datos y redactando informe...", "--chat-id", sender_id])
+        run_tool("telegram_tool.py", ["--action", "send", "--message",
+                 "🧠 Analizando datos y redactando informe...", "--chat-id", sender_id])
 
         llm_res = run_tool("chat_with_llm.py", ["--prompt", report_prompt, "--memory-query", topic])
 
@@ -116,19 +123,21 @@ Enfócate en la practicidad y la implementación con herramientas libres (Open S
     except Exception as e:
         return f"❌ Error procesando el reporte: {e}"
 
+
 def _handle_recordatorio(msg, sender_id, run_tool):
     try:
         parts = msg.split(" ", 2)
         if len(parts) < 3:
             return "⚠️ Uso: /recordatorio HH:MM Mensaje\nEj: `/recordatorio 08:00 Tomar antibiótico`"
-        
+
         time_str, note = parts[1], parts[2]
         datetime.datetime.strptime(time_str, "%H:%M")
-        
+
         add_reminder(sender_id, time_str, note)
         return f"✅ Recordatorio configurado en la base de datos.\nTe avisaré todos los días a las {time_str}: '{note}'."
     except ValueError:
         return "❌ Hora inválida. Usa formato 24h (HH:MM), ej: 14:30."
+
 
 def _handle_borrar_recordatorios(msg, sender_id, run_tool):
     rows_deleted = delete_reminders_for_user(sender_id)
@@ -137,15 +146,16 @@ def _handle_borrar_recordatorios(msg, sender_id, run_tool):
     else:
         return "🤔 No tienes recordatorios configurados para borrar."
 
+
 def _handle_borrar_recordatorio_id(msg, sender_id, run_tool):
     try:
         parts = msg.split(" ")
         if len(parts) < 2:
             return "⚠️ Uso: /borrar_recordatorio [ID]\nUsa /mis_recordatorios para ver los IDs."
-        
+
         reminder_id = int(parts[1])
         rows = delete_reminder_by_id(reminder_id, sender_id)
-        
+
         if rows > 0:
             return f"✅ Recordatorio {reminder_id} eliminado."
         else:
@@ -153,16 +163,18 @@ def _handle_borrar_recordatorio_id(msg, sender_id, run_tool):
     except ValueError:
         return "❌ El ID debe ser un número."
 
+
 def _handle_mis_recordatorios(msg, sender_id, run_tool):
     reminders = get_reminders_by_user(sender_id)
     if not reminders:
         return "📭 No tienes recordatorios activos."
-    
+
     reply = "📅 *Tus Recordatorios:*\n"
     for r in reminders:
         reply += f"- 🆔 `{r['id']}` | ⏰ {r['reminder_time']}: {r['message']}\n"
     reply += "\nPara borrar uno: `/borrar_recordatorio [ID]`"
     return reply
+
 
 def _handle_traducir(msg, sender_id, run_tool):
     content = msg.split(" ", 1)[1].strip() if " " in msg else ""
@@ -174,16 +186,20 @@ def _handle_traducir(msg, sender_id, run_tool):
     tmp_file = os.path.join(base_dir, ".tmp", content)
 
     target_file = None
-    if os.path.exists(docs_file): target_file = docs_file
-    elif os.path.exists(tmp_file): target_file = tmp_file
+    if os.path.exists(docs_file):
+        target_file = docs_file
+    elif os.path.exists(tmp_file):
+        target_file = tmp_file
 
     if target_file:
         print(f"   📄 Traduciendo archivo: {content}")
-        run_tool("telegram_tool.py", ["--action", "send", "--message", f"⏳ Traduciendo `{content}` al español...", "--chat-id", sender_id])
+        run_tool("telegram_tool.py", ["--action", "send", "--message",
+                 f"⏳ Traduciendo `{content}` al español...", "--chat-id", sender_id])
         res = run_tool("translate_text.py", ["--file", target_file, "--lang", "Español"])
         if res and res.get("status") == "success":
             out_path = res.get("file_path")
-            run_tool("telegram_tool.py", ["--action", "send-document", "--file-path", out_path, "--chat-id", sender_id, "--caption", "📄 Traducción al Español"])
+            run_tool("telegram_tool.py", ["--action", "send-document", "--file-path",
+                     out_path, "--chat-id", sender_id, "--caption", "📄 Traducción al Español"])
             return "✅ Archivo traducido enviado."
         else:
             err = res.get("message", "Error desconocido") if res else "Error en script"
@@ -197,11 +213,12 @@ def _handle_traducir(msg, sender_id, run_tool):
         else:
             return "❌ Error al traducir texto."
 
+
 def _handle_idioma(msg, sender_id, run_tool):
     parts = msg.split(" ")
     if len(parts) < 2:
         return "⚠️ Uso: /idioma [es/en]\nEj: `/idioma en` (para inglés)"
-    
+
     lang_map = {"es": "es-ES", "en": "en-US", "fr": "fr-FR", "pt": "pt-BR"}
     selection = parts[1].lower()
     code = lang_map.get(selection, "es-ES")
@@ -210,15 +227,19 @@ def _handle_idioma(msg, sender_id, run_tool):
     save_config(config)
     return f"✅ Idioma de voz cambiado a: `{code}`.\nAhora te escucharé en ese idioma."
 
+
 def _handle_ayuda_cnc(msg, sender_id, run_tool):
     manual_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "docs", "CNC.md")
     if os.path.exists(manual_path):
         print(f"   🛠️ Enviando documentación CNC a {sender_id}...")
-        run_tool("telegram_tool.py", ["--action", "send", "--message", "📘 Aquí tienes la documentación sobre el flujo de trabajo CNC.", "--chat-id", sender_id])
-        run_tool("telegram_tool.py", ["--action", "send-document", "--file-path", manual_path, "--chat-id", sender_id, "--caption", "Documentación CNC (Markdown)"])
-        return "" # El mensaje ya se envió
+        run_tool("telegram_tool.py", ["--action", "send", "--message",
+                 "📘 Aquí tienes la documentación sobre el flujo de trabajo CNC.", "--chat-id", sender_id])
+        run_tool("telegram_tool.py", ["--action", "send-document", "--file-path",
+                 manual_path, "--chat-id", sender_id, "--caption", "Documentación CNC (Markdown)"])
+        return ""  # El mensaje ya se envió
     else:
         return "⚠️ El archivo `docs/CNC.md` no se encuentra."
+
 
 def _handle_ingestar(msg, sender_id, run_tool):
     filename = msg.split(" ", 1)[1].strip() if " " in msg else ""
@@ -226,7 +247,8 @@ def _handle_ingestar(msg, sender_id, run_tool):
         return "⚠️ Uso: /ingestar [nombre_archivo_en_docs]"
 
     print(f"   📥 Ingestando archivo: {filename}")
-    run_tool("telegram_tool.py", ["--action", "send", "--message", f"⏳ Procesando `{filename}` para RAG...", "--chat-id", sender_id])
+    run_tool("telegram_tool.py", ["--action", "send", "--message",
+             f"⏳ Procesando `{filename}` para RAG...", "--chat-id", sender_id])
 
     path_in_container = f"/mnt/docs/{filename}"
     if filename.lower().endswith(".pdf"):
@@ -240,7 +262,7 @@ def _handle_ingestar(msg, sender_id, run_tool):
         content = read_res.get("stdout")
         if not content.strip():
             return "⚠️ El archivo parece estar vacío o no se pudo extraer texto."
-        
+
         full_text = f"Contenido del documento '{filename}':\n\n{content}"
         save_res = run_tool("save_memory.py", ["--text", full_text, "--category", "document_knowledge"])
         if save_res and save_res.get("status") == "success":
@@ -251,13 +273,15 @@ def _handle_ingestar(msg, sender_id, run_tool):
         error_details = read_res.get("stderr") or read_res.get("message", "No se pudo leer.")
         return f"❌ Error leyendo `{filename}`: {error_details}"
 
+
 def _handle_resumir_archivo(msg, sender_id, run_tool):
     filename = msg.split(" ", 1)[1].strip() if " " in msg else ""
     if not filename:
         return "⚠️ Uso: /resumir_archivo [nombre_del_archivo_en_docs]"
 
     print(f"   📄 Resumiendo archivo local: {filename}")
-    run_tool("telegram_tool.py", ["--action", "send", "--message", f"⏳ Leyendo y resumiendo `{filename}`...", "--chat-id", sender_id])
+    run_tool("telegram_tool.py", ["--action", "send", "--message",
+             f"⏳ Leyendo y resumiendo `{filename}`...", "--chat-id", sender_id])
 
     path_in_container = f"/mnt/docs/{filename}"
     if filename.lower().endswith(".pdf"):
@@ -278,6 +302,7 @@ def _handle_resumir_archivo(msg, sender_id, run_tool):
     else:
         error_details = read_res.get("stderr") or read_res.get("message", "No se pudo leer el archivo.")
         return f"❌ Error al leer el archivo `{filename}` desde el Sandbox:\n`{error_details}`"
+
 
 def _handle_resumir(msg, sender_id, run_tool):
     url = msg.split(" ", 1)[1] if " " in msg else ""
@@ -316,6 +341,7 @@ def _handle_resumir(msg, sender_id, run_tool):
     except Exception as e:
         return f"❌ Error leyendo contenido: {e}"
 
+
 def _handle_recordar(msg, sender_id, run_tool):
     memory_text = msg.split(" ", 1)[1] if " " in msg else ""
     if not memory_text:
@@ -330,9 +356,11 @@ def _handle_recordar(msg, sender_id, run_tool):
     else:
         return "❌ Error al guardar. (Verifica que save_memory.py exista y funcione)."
 
+
 def _handle_memorias(msg, sender_id, run_tool):
     print("   🧠 Consultando lista de recuerdos...")
-    run_tool("telegram_tool.py", ["--action", "send", "--message", "🧠 Consultando base de datos...", "--chat-id", sender_id])
+    run_tool("telegram_tool.py", ["--action", "send", "--message",
+             "🧠 Consultando base de datos...", "--chat-id", sender_id])
 
     res = run_tool("list_memories.py", ["--limit", "5"])
     if not (res and res.get("status") == "success"):
@@ -341,7 +369,7 @@ def _handle_memorias(msg, sender_id, run_tool):
     memories = res.get("memories", [])
     if not memories:
         return "📭 No tengo recuerdos guardados aún."
-    
+
     reply_text = "🧠 *Últimos recuerdos:*\n"
     for m in memories:
         date = m.get("timestamp", "").replace("T", " ").split(".")[0]
@@ -350,11 +378,12 @@ def _handle_memorias(msg, sender_id, run_tool):
         reply_text += f"🆔 `{mem_id}`\n📅 {date}: {content}\n\n"
     return reply_text
 
+
 def _handle_olvidar(msg, sender_id, run_tool):
     mem_id = msg.split(" ", 1)[1] if " " in msg else ""
     if not mem_id:
         return "⚠️ Uso: /olvidar [ID]"
-    
+
     print(f"   🗑️ Eliminando recuerdo: {mem_id}")
     res = run_tool("delete_memory.py", ["--id", mem_id])
     if res and res.get("status") == "success":
@@ -362,9 +391,11 @@ def _handle_olvidar(msg, sender_id, run_tool):
     else:
         return f"❌ Error al eliminar: {res.get('message', 'Desconocido')}"
 
+
 def _handle_versiones(msg, sender_id, run_tool):
     print("   🔍 Verificando versiones de herramientas en el Sandbox...")
-    run_tool("telegram_tool.py", ["--action", "send", "--message", "🔍 Auditando versiones instaladas en el entorno Docker...", "--chat-id", sender_id])
+    run_tool("telegram_tool.py", ["--action", "send", "--message",
+             "🔍 Auditando versiones instaladas en el entorno Docker...", "--chat-id", sender_id])
 
     script_path = os.path.join("execution", "check_tool_versions.py")
     if not os.path.exists(script_path):
@@ -385,6 +416,7 @@ def _handle_versiones(msg, sender_id, run_tool):
     else:
         return f"❌ Error obteniendo versiones: {res.get('stderr')}"
 
+
 def _handle_broadcast(msg, sender_id, run_tool):
     announcement = msg.split(" ", 1)[1] if " " in msg else ""
     if not announcement:
@@ -397,9 +429,11 @@ def _handle_broadcast(msg, sender_id, run_tool):
     count = 0
     for uid in users:
         if uid.strip():
-            run_tool("telegram_tool.py", ["--action", "send", "--message", f"📢 *ANUNCIO:*\n{announcement}", "--chat-id", uid])
+            run_tool("telegram_tool.py", ["--action", "send", "--message",
+                     f"📢 *ANUNCIO:*\n{announcement}", "--chat-id", uid])
             count += 1
     return f"✅ Mensaje enviado a {count} usuarios."
+
 
 def _handle_status(msg, sender_id, run_tool):
     print("   📊 Verificando estado del sistema...")
@@ -422,13 +456,15 @@ def _handle_status(msg, sender_id, run_tool):
         reply_text += "\n🚨 *Alertas:*\n" + "\n".join([f"- {a}" for a in alerts])
     return reply_text
 
+
 def _handle_usuarios(msg, sender_id, run_tool):
     users = get_all_users()
     last_users = users[-5:]
     if not last_users:
         return "📭 No hay usuarios registrados."
-    
+
     return f"👥 *Últimos {len(last_users)} usuarios registrados:*\n" + "\n".join([f"- `{u}`" for u in last_users])
+
 
 def _handle_modo(msg, sender_id, run_tool):
     mode = msg.split(" ", 1)[1].lower().strip() if " " in msg else ""
@@ -443,36 +479,39 @@ def _handle_modo(msg, sender_id, run_tool):
             "Uso: `/modo [opcion]`"
         )
 
+
 def _handle_reiniciar(msg, sender_id, run_tool):
     print("   🔄 Preparando reinicio de sesión y guardado de historial...")
-    
+
     # Generar un resumen rápido de la sesión actual antes de borrarla
     summary_prompt = "Genera un resumen de una sola frase (máx 15 palabras) de nuestra conversación actual para el historial."
     res_summary = run_tool("chat_with_llm.py", ["--prompt", summary_prompt, "--no-rag"])
     summary = res_summary.get("content", "Conversación finalizada") if res_summary else "Conversación finalizada"
-    
+
     # Guardar en la base de datos de historial
     run_tool("chat_history.py", ["--action", "save", "--user-id", sender_id, "--summary", summary])
-    
+
     # Proceder con el reinicio
     run_tool("chat_with_llm.py", ["--prompt", "/clear"])
     set_persona("default")
-    
+
     return f"🔄 *Sistema reiniciado.*\n\n- Sesión anterior guardada: _{summary}_\n- Historial de conversación borrado.\n- Personalidad restablecida a 'Default'."
+
 
 def _handle_resume(msg, sender_id, run_tool):
     parts = msg.split()
     if len(parts) == 1:
         # Si el usuario solo escribe /resume, listamos sus sesiones anteriores
         print(f"   📜 Consultando historial de sesiones para {sender_id}...")
-        run_tool("telegram_tool.py", ["--action", "send", "--message", "📜 Buscando tus conversaciones anteriores...", "--chat-id", sender_id])
-        
+        run_tool("telegram_tool.py", ["--action", "send", "--message",
+                 "📜 Buscando tus conversaciones anteriores...", "--chat-id", sender_id])
+
         res = run_tool("chat_history.py", ["--action", "list", "--user-id", sender_id])
         if res and res.get("status") == "success":
             history = res.get("history", [])
             if not history:
                 return "📭 No tienes conversaciones guardadas para reanudar."
-            
+
             reply = "📜 *Tus Conversaciones Recientes:*\n\n"
             for session in history:
                 reply += f"🆔 `{session['id']}` | 📅 {session['date']}\n"
@@ -487,31 +526,33 @@ def _handle_resume(msg, sender_id, run_tool):
         return f"🔄 *Conversación {session_id} reanudada.*\n\nHe cargado el contexto de esa sesión. ¿En qué nos habíamos quedado?"
     return f"❌ No se pudo encontrar la conversación con ID `{session_id}`."
 
+
 def _handle_borrar_sesion(msg, sender_id, run_tool):
     parts = msg.split()
     if len(parts) < 2:
         return "⚠️ Uso: `/borrar_sesion [ID]`\nUsa `/resume` para ver tus IDs de sesión."
-    
+
     session_id = parts[1]
     res = run_tool("chat_history.py", ["--action", "delete", "--user-id", sender_id, "--session-id", session_id])
     if res and res.get("status") == "success":
         return f"🗑️ *Sesión {session_id} eliminada* de tu historial."
     return f"❌ No se pudo borrar la sesión `{session_id}`."
 
+
 def _handle_buscar_sesion(msg, sender_id, run_tool):
     parts = msg.split(" ", 1)
     if len(parts) < 2:
         return "⚠️ Uso: `/buscar_sesion [palabra clave]`"
-    
+
     query = parts[1].strip()
     print(f"   🔍 Buscando sesiones con la palabra: '{query}'...")
-    
+
     res = run_tool("chat_history.py", ["--action", "search", "--user-id", sender_id, "--query", query])
     if res and res.get("status") == "success":
         history = res.get("history", [])
         if not history:
             return f"🔎 No encontré sesiones que mencionen *'{query}'*."
-        
+
         reply = f"🔎 *Resultados para '{query}':*\n\n"
         for session in history:
             reply += f"🆔 `{session['id']}` | 📅 {session['date']}\n"
@@ -520,33 +561,39 @@ def _handle_buscar_sesion(msg, sender_id, run_tool):
         return reply
     return "❌ Error al realizar la búsqueda."
 
+
 def _handle_exportar_sesion(msg, sender_id, run_tool):
     parts = msg.split()
     if len(parts) < 2:
         return "⚠️ Uso: `/exportar_sesion [ID]`\nUsa `/resume` para ver los IDs."
-    
+
     session_id = parts[1]
     print(f"   📂 Exportando sesión {session_id} a Markdown...")
-    run_tool("telegram_tool.py", ["--action", "send", "--message", f"📂 Generando archivo Markdown para la sesión {session_id}...", "--chat-id", sender_id])
-    
+    run_tool("telegram_tool.py", ["--action", "send", "--message",
+             f"📂 Generando archivo Markdown para la sesión {session_id}...", "--chat-id", sender_id])
+
     res = run_tool("chat_history.py", ["--action", "export", "--user-id", sender_id, "--session-id", session_id])
     if res and res.get("status") == "success":
         filepath = res.get("file")
-        run_tool("telegram_tool.py", ["--action", "send-document", "--file-path", filepath, "--chat-id", sender_id, "--caption", f"📄 Exportación Sesión {session_id}"])
+        run_tool("telegram_tool.py", ["--action", "send-document", "--file-path", filepath,
+                 "--chat-id", sender_id, "--caption", f"📄 Exportación Sesión {session_id}"])
         return f"✅ Sesión exportada correctamente a `docs/{os.path.basename(filepath)}`."
     return f"❌ Error al exportar la sesión: {res.get('message', 'Desconocido')}"
 
+
 def _handle_limpiar(msg, sender_id, run_tool):
     print("   🧹 Ejecutando limpieza de archivos temporales...")
-    run_tool("telegram_tool.py", ["--action", "send", "--message", "🧹 Limpiando archivos temporales, cachés y logs...", "--chat-id", sender_id])
-    
+    run_tool("telegram_tool.py", ["--action", "send", "--message",
+             "🧹 Limpiando archivos temporales, cachés y logs...", "--chat-id", sender_id])
+
     res = run_tool("clean_project.py", [])
-    
+
     if res and res.get("status") == "success":
         return "✅ Limpieza completada. Se han eliminado archivos temporales y cachés."
     else:
         err_msg = res.get("message") if res else "Error desconocido durante la limpieza."
         return f"❌ Error durante la limpieza: {err_msg}"
+
 
 def _handle_ayuda(msg, sender_id, run_tool):
     return (
@@ -592,13 +639,15 @@ def _handle_ayuda(msg, sender_id, run_tool):
         "🔹 */ayuda*: Muestra este menú."
     )
 
+
 def _handle_send_cnc(msg, sender_id, run_tool):
     parts = msg.split()
     if len(parts) < 3:
         return "⚠️ Uso: `/send_cnc [puerto] [archivo.nc]`\nEj: `/send_cnc /dev/ttyUSB0 mi_logo.nc`"
-    
+
     port, gcode_file = parts[1], parts[2]
-    run_tool("telegram_tool.py", ["--action", "send", "--message", f"🚨 *¡ATENCIÓN!* 🚨\nIniciando envío de `{gcode_file}` a la CNC en el puerto `{port}`.\n\n*Asegúrate de que la fresa esté en una posición segura.*", "--chat-id", sender_id])
+    run_tool("telegram_tool.py", ["--action", "send", "--message",
+             f"🚨 *¡ATENCIÓN!* 🚨\nIniciando envío de `{gcode_file}` a la CNC en el puerto `{port}`.\n\n*Asegúrate de que la fresa esté en una posición segura.*", "--chat-id", sender_id])
     time.sleep(2)
 
     res = run_tool("send_gcode.py", ["--port", port, "--file", gcode_file])
@@ -607,12 +656,14 @@ def _handle_send_cnc(msg, sender_id, run_tool):
     else:
         return "❌ Error durante el envío a la CNC. Revisa los logs de la terminal."
 
+
 def _handle_kicad(msg, sender_id, run_tool):
     design_file = os.path.join(".tmp", "current_design.json")
     if not os.path.exists(design_file):
         return "⚠️ No hay un diseño activo en memoria. Primero usa `/diseñar` con una foto de tu circuito."
 
-    run_tool("telegram_tool.py", ["--action", "send", "--message", "⚙️ Generando Netlist para KiCad...", "--chat-id", sender_id])
+    run_tool("telegram_tool.py", ["--action", "send", "--message",
+             "⚙️ Generando Netlist para KiCad...", "--chat-id", sender_id])
     output_net = os.path.join(".out", "circuito_generado.kicad_sch")
     res = run_tool("json_to_kicad_netlist.py", ["--json", design_file, "--output", output_net])
 
@@ -621,21 +672,25 @@ def _handle_kicad(msg, sender_id, run_tool):
         details = res.get("details", "")
         return f"❌ Error generando la netlist: {err}\n{details}"
 
-    run_tool("telegram_tool.py", ["--action", "send-document", "--file-path", output_net, "--chat-id", sender_id, "--caption", "KiCad File (.kicad_sch)\nGenerado para KiCad 8.0"])
-    
-    run_tool("telegram_tool.py", ["--action", "send", "--message", "🎨 Generando vista previa del esquemático...", "--chat-id", sender_id])
+    run_tool("telegram_tool.py", ["--action", "send-document", "--file-path", output_net,
+             "--chat-id", sender_id, "--caption", "KiCad File (.kicad_sch)\nGenerado para KiCad 8.0"])
+
+    run_tool("telegram_tool.py", ["--action", "send", "--message",
+             "🎨 Generando vista previa del esquemático...", "--chat-id", sender_id])
     render_script_path = os.path.join("execution", "render_sch.py")
     if os.path.exists(render_script_path):
         with open(render_script_path, "r") as f:
             render_code = f.read()
-        
+
         inj_render = "import sys\nsys.argv = ['render_sch.py', '/mnt/out/circuito_generado.kicad_sch', '/mnt/out/sch_preview.png']\n"
         res_render = run_tool("run_sandbox.py", ["--code", inj_render + render_code])
         expected_png = os.path.join(".out", "sch_preview.png")
         if res_render.get("status") == "success" and os.path.exists(expected_png):
-            run_tool("telegram_tool.py", ["--action", "send-photo", "--file-path", expected_png, "--chat-id", sender_id, "--caption", "👁️ Vista Previa Esquemático"])
+            run_tool("telegram_tool.py", ["--action", "send-photo", "--file-path", expected_png,
+                     "--chat-id", sender_id, "--caption", "👁️ Vista Previa Esquemático"])
 
     return "✅ Archivo generado como `circuito_generado.kicad_sch`. Listo para importar en KiCad 8.0."
+
 
 def _handle_pcb(msg, sender_id, run_tool):
     design_file = os.path.join(".tmp", "current_design.json")
@@ -661,9 +716,11 @@ def _handle_pcb(msg, sender_id, run_tool):
         except ValueError:
             pass
 
-    run_tool("telegram_tool.py", ["--action", "send", "--message", f"⚙️ Generando archivo PCB ({width}x{height}mm, Margen: {margin}mm) automáticamente...", "--chat-id", sender_id])
+    run_tool("telegram_tool.py", ["--action", "send", "--message",
+             f"⚙️ Generando archivo PCB ({width}x{height}mm, Margen: {margin}mm) automáticamente...", "--chat-id", sender_id])
     output_script_path = os.path.join(".tmp", "create_pcb_script.py")
-    res_gen = run_tool("generate_kicad_pcb_script.py", ["--json", design_file, "--output", output_script_path, "--width", str(width), "--height", str(height), "--margin", str(margin)])
+    res_gen = run_tool("generate_kicad_pcb_script.py", [
+                       "--json", design_file, "--output", output_script_path, "--width", str(width), "--height", str(height), "--margin", str(margin)])
 
     if not (res_gen and res_gen.get("status") == "success" and os.path.exists(output_script_path)):
         err = res_gen.get("message") if res_gen else "Error desconocido"
@@ -697,9 +754,11 @@ def _handle_pcb(msg, sender_id, run_tool):
 
         expected_pcb = os.path.join(".out", "circuito_generado.kicad_pcb")
         if res_exec.get("status") == "success" and os.path.exists(expected_pcb):
-            run_tool("telegram_tool.py", ["--action", "send-document", "--file-path", expected_pcb, "--chat-id", sender_id, "--caption", "✅ PCB Preparado para DeepPCB (.kicad_pcb)"])
-            
-            run_tool("telegram_tool.py", ["--action", "send", "--message", "🎨 Generando vista previa de la placa...", "--chat-id", sender_id])
+            run_tool("telegram_tool.py", ["--action", "send-document", "--file-path", expected_pcb,
+                     "--chat-id", sender_id, "--caption", "✅ PCB Preparado para DeepPCB (.kicad_pcb)"])
+
+            run_tool("telegram_tool.py", ["--action", "send", "--message",
+                     "🎨 Generando vista previa de la placa...", "--chat-id", sender_id])
             render_script_path = os.path.join("execution", "render_pcb.py")
             if os.path.exists(render_script_path):
                 with open(render_script_path, "r") as f:
@@ -711,14 +770,16 @@ def _handle_pcb(msg, sender_id, run_tool):
                     final_caption = "👁️ Vista Previa (Capas F.Cu y B.Cu)"
                     if routing_summary:
                         final_caption += f"\n\n{routing_summary}"
-                    run_tool("telegram_tool.py", ["--action", "send-photo", "--file-path", expected_png, "--chat-id", sender_id, "--caption", final_caption])
+                    run_tool("telegram_tool.py", ["--action", "send-photo", "--file-path",
+                             expected_png, "--chat-id", sender_id, "--caption", final_caption])
                     return "¡Éxito! Componentes ubicados y redes asignadas. Usa `/deeppcb` para exportar el diseño y subirlo a DeepPCB.ai para el enrutado final."
         else:
             stdout = res_exec.get("stdout", "")
             stderr = res_exec.get("stderr", "")
             msg_err = res_exec.get("message", "")
             err_log = f"{stdout}\n{msg_err}\n{stderr}".strip()
-            run_tool("telegram_tool.py", ["--action", "send-document", "--file-path", output_script_path, "--chat-id", sender_id, "--caption", "Script de KiCad PCB (Python) - Fallback"])
+            run_tool("telegram_tool.py", ["--action", "send-document", "--file-path", output_script_path,
+                     "--chat-id", sender_id, "--caption", "Script de KiCad PCB (Python) - Fallback"])
             return (
                 f"⚠️ Error en la generación automática de la placa (PCB).\n"
                 f"Detalle del error:\n```\n{err_log[-1000:] if err_log else 'Error desconocido'}\n```\n\n"
@@ -727,16 +788,18 @@ def _handle_pcb(msg, sender_id, run_tool):
     except Exception as e:
         return f"❌ Error interno ejecutando script: {e}"
 
+
 def _handle_deeppcb(msg, sender_id, run_tool):
     pcb_file_host = os.path.join(".out", "circuito_generado.kicad_pcb")
     if not os.path.exists(pcb_file_host):
         return "⚠️ No hay un archivo de placa (.kicad_pcb) activo. Primero usa `/pcb` para generar uno."
 
-    run_tool("telegram_tool.py", ["--action", "send", "--message", "🛰️ Generando archivo Specctra DSN para DeepPCB...", "--chat-id", sender_id])
-    
+    run_tool("telegram_tool.py", ["--action", "send", "--message",
+             "🛰️ Generando archivo Specctra DSN para DeepPCB...", "--chat-id", sender_id])
+
     dsn_filename = "circuito_generado.dsn"
     dsn_path_host = os.path.join(".out", dsn_filename)
-    
+
     # Código Python para ejecutar dentro del Sandbox que usa pcbnew API para exportar DSN
     export_code = f'''
 import os
@@ -764,24 +827,27 @@ try:
         print("DSN_EXPORT_FAIL: La exportación de Specctra DSN falló.")
 except Exception as e: print(f"DSN_EXCEPTION: {{str(e)}}")
 '''
-    
+
     res_exec = run_tool("run_sandbox.py", ["--code", export_code])
-    
+
     if "DSN_EXPORT_OK" in res_exec.get("stdout", ""):
         if os.path.exists(dsn_path_host):
-            run_tool("telegram_tool.py", ["--action", "send-document", "--file-path", dsn_path_host, "--chat-id", sender_id, "--caption", "✅ Archivo Specctra DSN (.dsn)\\nListo para subir a DeepPCB.ai"])
+            run_tool("telegram_tool.py", ["--action", "send-document", "--file-path", dsn_path_host, "--chat-id",
+                     sender_id, "--caption", "✅ Archivo Specctra DSN (.dsn)\\nListo para subir a DeepPCB.ai"])
             return "¡Proceso completado!"
         return "❌ El archivo .dsn no se generó correctamente en el host."
-    
+
     error_msg = res_exec.get("stdout", "") or res_exec.get("message", "Error desconocido")
     return f"❌ Error en la exportación: `{error_msg[:300]}`"
+
 
 def _handle_fabricar(msg, sender_id, run_tool):
     pcb_file_host = os.path.join(".out", "circuito_generado.kicad_pcb")
     if not os.path.exists(pcb_file_host):
         return "⚠️ No hay un archivo de placa (.kicad_pcb) activo. Primero usa `/pcb` para generar uno."
 
-    run_tool("telegram_tool.py", ["--action", "send", "--message", "🏭 Generando paquete de fabricación (Gerbers + Drills)...", "--chat-id", sender_id])
+    run_tool("telegram_tool.py", ["--action", "send", "--message",
+             "🏭 Generando paquete de fabricación (Gerbers + Drills)...", "--chat-id", sender_id])
     output_zip_name = f"Fab_Pack_{int(time.time())}.zip"
     board_file_sandbox = "circuito_generado.kicad_pcb"
 
@@ -796,7 +862,8 @@ def _handle_fabricar(msg, sender_id, run_tool):
         expected_zip_path = os.path.join(".out", output_zip_name)
 
         if res_exec.get("status") == "success" and os.path.exists(expected_zip_path):
-            run_tool("telegram_tool.py", ["--action", "send-document", "--file-path", expected_zip_path, "--chat-id", sender_id, "--caption", "✅ Paquete de Fabricación (ZIP)\nListo para enviar a JLCPCB, PCBWay, etc."])
+            run_tool("telegram_tool.py", ["--action", "send-document", "--file-path", expected_zip_path, "--chat-id",
+                     sender_id, "--caption", "✅ Paquete de Fabricación (ZIP)\nListo para enviar a JLCPCB, PCBWay, etc."])
             return "¡Éxito! Tu paquete de fabricación está listo."
         else:
             err_log = res_exec.get("stderr", "") or res_exec.get("message", "")
@@ -804,16 +871,18 @@ def _handle_fabricar(msg, sender_id, run_tool):
     except Exception as e:
         return f"❌ Error interno preparando la generación de Gerbers: {e}"
 
+
 def _handle_gcode(msg, sender_id, run_tool):
     # Encontrar el último paquete de fabricación
     fab_packs = glob.glob(os.path.join(".out", "Fab_Pack_*.zip"))
     if not fab_packs:
         return "⚠️ No se encontró un paquete de fabricación. Primero usa `/fabricar` para generar los Gerbers."
-    
+
     latest_fab_pack = max(fab_packs, key=os.path.getctime)
     print(f"   ⚙️ Usando el paquete de fabricación más reciente: {os.path.basename(latest_fab_pack)}")
 
-    run_tool("telegram_tool.py", ["--action", "send", "--message", f"⚙️ Procesando Gerbers de `{os.path.basename(latest_fab_pack)}` para generar G-Code...", "--chat-id", sender_id])
+    run_tool("telegram_tool.py", ["--action", "send", "--message",
+             f"⚙️ Procesando Gerbers de `{os.path.basename(latest_fab_pack)}` para generar G-Code...", "--chat-id", sender_id])
 
     # Directorio temporal para descomprimir los Gerbers (DENTRO de .out para que el Sandbox lo vea)
     temp_gerber_dir = os.path.join(".out", "unzipped_gerbers")
@@ -824,7 +893,7 @@ def _handle_gcode(msg, sender_id, run_tool):
     try:
         with zipfile.ZipFile(latest_fab_pack, 'r') as zip_ref:
             zip_ref.extractall(temp_gerber_dir)
-        
+
         output_nc_filename = f"CNC_Milling_{int(time.time())}.nc"
         output_nc_path = os.path.join(".out", output_nc_filename)
 
@@ -840,29 +909,31 @@ def _handle_gcode(msg, sender_id, run_tool):
         # Las rutas deben ser las que el contenedor ve (/mnt/out/...)
         container_input_dir = "/mnt/out/unzipped_gerbers"
         container_output_file = f"/mnt/out/{output_nc_filename}"
-        
+
         argv_injection = (
             f"import sys\n"
             f"sys.argv = ['generate_gcode.py', '--input-dir', '{container_input_dir}', '--output-file', '{container_output_file}']\n"
         )
-        
+
         res = run_tool("run_sandbox.py", ["--code", argv_injection + script_content])
 
         if res and res.get("status") == "success" and os.path.exists(output_nc_path):
-            run_tool("telegram_tool.py", ["--action", "send-document", "--file-path", output_nc_path, "--chat-id", sender_id, "--caption", "✅ G-Code de fresado (.nc) generado."])
-            
+            run_tool("telegram_tool.py", ["--action", "send-document", "--file-path", output_nc_path,
+                     "--chat-id", sender_id, "--caption", "✅ G-Code de fresado (.nc) generado."])
+
             # Enviar vista previa si existe
             preview_path_container = res.get("preview")
             if preview_path_container:
                 preview_filename = os.path.basename(preview_path_container)
                 preview_path_host = os.path.join(".out", preview_filename)
                 if os.path.exists(preview_path_host):
-                    run_tool("telegram_tool.py", ["--action", "send-document", "--file-path", preview_path_host, "--chat-id", sender_id, "--caption", "👁️ Vista Previa de Rutas (SVG)"])
+                    run_tool("telegram_tool.py", ["--action", "send-document", "--file-path", preview_path_host,
+                             "--chat-id", sender_id, "--caption", "👁️ Vista Previa de Rutas (SVG)"])
 
             return "¡Éxito! Tu G-Code está listo. He adjuntado una vista previa SVG para que veas las rutas de corte."
         else:
             err_msg = res.get("message", "Error desconocido.") if res else "El script no devolvió respuesta."
-            
+
             # Intentar limpiar el mensaje si es JSON (para mostrar el error real de pcb2gcode)
             try:
                 err_json = json.loads(err_msg)
@@ -880,10 +951,12 @@ def _handle_gcode(msg, sender_id, run_tool):
         if os.path.exists(temp_gerber_dir):
             shutil.rmtree(temp_gerber_dir)
 
+
 def _handle_py(msg, sender_id, run_tool):
     raw_input = msg.split(" ", 1)[1].strip()
 
-    forbidden = ["build_sandbox.py", "listen_telegram.py", "init_project.py", "deploy_to_github.py", "check_system_health.py"]
+    forbidden = ["build_sandbox.py", "listen_telegram.py",
+                 "init_project.py", "deploy_to_github.py", "check_system_health.py"]
     if any(f in raw_input for f in forbidden):
         return "⛔ *Acción Denegada*: Este script es administrativo y debe ejecutarse en la terminal del servidor (Host), no dentro del Sandbox."
 
@@ -932,7 +1005,8 @@ def _handle_py(msg, sender_id, run_tool):
                     is_image = any(filename.lower().endswith(ext) for ext in ['.png', '.jpg', '.jpeg', '.gif', '.bmp'])
                     action = "send-photo" if is_image else "send-document"
                     caption = f"{'Imagen' if is_image else 'Archivo'} generado: {filename}"
-                    run_tool("telegram_tool.py", ["--action", action, "--file-path", local_path, "--chat-id", sender_id, "--caption", caption])
+                    run_tool("telegram_tool.py", ["--action", action, "--file-path",
+                             local_path, "--chat-id", sender_id, "--caption", caption])
                     sent_file = True
                     continue
             clean_stdout_lines.append(line)
@@ -946,15 +1020,17 @@ def _handle_py(msg, sender_id, run_tool):
             reply_text += f"*Errores:*\n```\n{stderr}\n```\n"
     elif not sent_file:
         reply_text = "📦 *Resultado del Sandbox:*\n\n_El código se ejecutó sin producir salida._"
-    
+
     return reply_text
+
 
 def _handle_freecad(msg, sender_id, run_tool):
     description = msg.split(" ", 1)[1] if " " in msg else ""
     if not description:
         return "⚠️ Uso: /freecad [descripción del objeto 3D]\nEj: `/freecad una caja de 20x30x10 mm`"
 
-    run_tool("telegram_tool.py", ["--action", "send", "--message", f"🧠 Interpretando tu diseño 3D: '{description}'...", "--chat-id", sender_id])
+    run_tool("telegram_tool.py", ["--action", "send", "--message",
+             f"🧠 Interpretando tu diseño 3D: '{description}'...", "--chat-id", sender_id])
 
     # 0. Cargar contexto anterior (si existe)
     last_params_path = os.path.join(".tmp", f"last_3d_params_{sender_id}.json")
@@ -1104,9 +1180,9 @@ def _handle_freecad(msg, sender_id, run_tool):
 
     JSON de salida:
     """
-    
+
     llm_res = run_tool("chat_with_llm.py", ["--prompt", prompt, "--no-rag"])
-    
+
     params_json_str = ""
     if llm_res and "content" in llm_res:
         try:
@@ -1123,18 +1199,19 @@ def _handle_freecad(msg, sender_id, run_tool):
                     params_json_str = content[start_idx:end_idx+1].strip()
                 else:
                     params_json_str = content.strip()
-            
-            json.loads(params_json_str) # Validar
-            
+
+            json.loads(params_json_str)  # Validar
+
             # Guardar contexto para la próxima
             with open(last_params_path, "w") as f:
                 f.write(params_json_str)
         except (IndexError, json.JSONDecodeError):
-             return f"❌ No pude interpretar los parámetros del diseño. El modelo devolvió: {llm_res['content']}"
+            return f"❌ No pude interpretar los parámetros del diseño. El modelo devolvió: {llm_res['content']}"
     else:
         return "❌ Error al contactar al LLM para interpretar el diseño."
 
-    run_tool("telegram_tool.py", ["--action", "send", "--message", f"⚙️ Generando modelo 3D con parámetros: `{params_json_str}`...", "--chat-id", sender_id])
+    run_tool("telegram_tool.py", ["--action", "send", "--message",
+             f"⚙️ Generando modelo 3D con parámetros: `{params_json_str}`...", "--chat-id", sender_id])
 
     output_script_path = os.path.join(".tmp", "create_model_script.py")
     res_gen = run_tool("generate_freecad_script.py", ["--params", params_json_str, "--output", output_script_path])
@@ -1144,7 +1221,7 @@ def _handle_freecad(msg, sender_id, run_tool):
 
     with open(output_script_path, "r") as f:
         script_content = f.read()
-    
+
     res_exec = run_tool("run_sandbox.py", ["--code", script_content])
 
     if not (res_exec and res_exec.get("status") == "success"):
@@ -1161,14 +1238,17 @@ def _handle_freecad(msg, sender_id, run_tool):
     expected_stl = os.path.join(".out", "modelo_3d.stl")
     if os.path.exists(expected_stl):
         # --- Generar Vista Previa (Render) ---
-        run_tool("telegram_tool.py", ["--action", "send", "--message", "🎨 Generando vista previa del modelo...", "--chat-id", sender_id])
-        
+        run_tool("telegram_tool.py", ["--action", "send", "--message",
+                 "🎨 Generando vista previa del modelo...", "--chat-id", sender_id])
+
         # Buscamos el PNG generado directamente por FreeCADGui dentro del sandbox
         expected_png = os.path.join(".out", "modelo_3d.png")
         if os.path.exists(expected_png):
-            run_tool("telegram_tool.py", ["--action", "send-photo", "--file-path", expected_png, "--chat-id", sender_id, "--caption", "👁️ Vista Previa 3D (Renderizado Nativo)"])
+            run_tool("telegram_tool.py", ["--action", "send-photo", "--file-path", expected_png,
+                     "--chat-id", sender_id, "--caption", "👁️ Vista Previa 3D (Renderizado Nativo)"])
             # Enviar también como documento para visualización externa (Solicitud del usuario)
-            run_tool("telegram_tool.py", ["--action", "send-document", "--file-path", expected_png, "--chat-id", sender_id, "--caption", "🖼️ Render PNG (Alta Calidad)"])
+            run_tool("telegram_tool.py", ["--action", "send-document", "--file-path",
+                     expected_png, "--chat-id", sender_id, "--caption", "🖼️ Render PNG (Alta Calidad)"])
         else:
             # Extraer diagnóstico del stderr para informar al usuario
             stderr = res_exec.get("stderr", "")
@@ -1176,51 +1256,57 @@ def _handle_freecad(msg, sender_id, run_tool):
             for line in stderr.splitlines():
                 if "Warning:" in line or "Error:" in line:
                     diag_msg = line.strip()
-            
-            run_tool("telegram_tool.py", ["--action", "send", "--message", f"⚠️ No se generó el archivo PNG de vista previa.\n\n📍 Ubicación esperada: `.out/modelo_3d.png`\n🔍 Diagnóstico: `{diag_msg}`", "--chat-id", sender_id])
+
+            run_tool("telegram_tool.py", ["--action", "send", "--message",
+                     f"⚠️ No se generó el archivo PNG de vista previa.\n\n📍 Ubicación esperada: `.out/modelo_3d.png`\n🔍 Diagnóstico: `{diag_msg}`", "--chat-id", sender_id])
 
         # Enviar STL
         caption_stl = "✅ Modelo 3D (STL) para impresión."
         if phys_props:
             caption_stl += f"\n\n📏 {phys_props}"
-        run_tool("telegram_tool.py", ["--action", "send-document", "--file-path", expected_stl, "--chat-id", sender_id, "--caption", caption_stl])
+        run_tool("telegram_tool.py", ["--action", "send-document", "--file-path",
+                 expected_stl, "--chat-id", sender_id, "--caption", caption_stl])
 
         # Enviar OBJ si existe
         expected_obj = os.path.join(".out", "modelo_3d.obj")
         if os.path.exists(expected_obj):
-            run_tool("telegram_tool.py", ["--action", "send-document", "--file-path", expected_obj, "--chat-id", sender_id, "--caption", "📦 Modelo 3D (OBJ)"])
-            
+            run_tool("telegram_tool.py", ["--action", "send-document", "--file-path",
+                     expected_obj, "--chat-id", sender_id, "--caption", "📦 Modelo 3D (OBJ)"])
+
         # Enviar STEP si existe
         expected_step = os.path.join(".out", "modelo_3d.step")
         if os.path.exists(expected_step):
-            run_tool("telegram_tool.py", ["--action", "send-document", "--file-path", expected_step, "--chat-id", sender_id, "--caption", "⚙️ Modelo CAD (STEP)"])
+            run_tool("telegram_tool.py", ["--action", "send-document", "--file-path",
+                     expected_step, "--chat-id", sender_id, "--caption", "⚙️ Modelo CAD (STEP)"])
 
         return "¡Éxito! He generado tu modelo 3D."
     else:
         return "⚠️ Se ejecutó el script pero no se encontraron los archivos de salida."
+
 
 def _handle_buscar_esquema(msg, sender_id, run_tool):
     topic = msg.split(" ", 1)[1] if " " in msg else ""
     if not topic:
         return "⚠️ Uso: /buscar_esquema [nombre del circuito]\nEj: `/buscar_esquema arduino uno schematic`"
 
-    run_tool("telegram_tool.py", ["--action", "send", "--message", f"🔍 Buscando esquemas de '{topic}' en la red...", "--chat-id", sender_id])
-    
+    run_tool("telegram_tool.py", ["--action", "send", "--message",
+             f"🔍 Buscando esquemas de '{topic}' en la red...", "--chat-id", sender_id])
+
     # 1. Buscar enlaces usando la herramienta de investigación
     query = f"circuit diagram schematic diagram png jpg {topic}"
     res_search = run_tool("research_topic.py", ["--query", query, "--output-file", ".tmp/img_search.txt"])
-    
+
     if not (res_search and res_search.get("status") == "success"):
         return "❌ Error en la fase de búsqueda."
 
     try:
         with open(".tmp/img_search.txt", "r", encoding="utf-8") as f:
             search_data = f.read()
-        
+
         # 2. Extraer URL de imagen directa con el LLM
         prompt = f"De los siguientes resultados, identifica una URL directa que apunte a una imagen (PNG/JPG) de un esquema electrónico para '{topic}'. Responde SOLO con la URL. Si no hay, responde 'NONE'.\n\nResultados:\n{search_data}"
         llm_res = run_tool("chat_with_llm.py", ["--prompt", prompt, "--no-rag"])
-        
+
         img_url = llm_res.get("content", "").strip()
         if "http" not in img_url or "NONE" in img_url.upper():
             return "😕 No encontré una imagen directa. Prueba con un término más específico."
@@ -1243,14 +1329,17 @@ except Exception as e: print(f'Error: {{e}}')
         output = res_dl.get("stdout", "").strip()
         if "/mnt/out/" in output:
             local_path = os.path.join(".out", os.path.basename(output))
-            run_tool("telegram_tool.py", ["--action", "send-photo", "--file-path", local_path, "--chat-id", sender_id, "--caption", f"✅ Esquema de '{topic}' descargado.\n\nAhora puedes usar `/disenar` respondiendo a esta foto."])
+            run_tool("telegram_tool.py", ["--action", "send-photo", "--file-path", local_path, "--chat-id", sender_id,
+                     "--caption", f"✅ Esquema de '{topic}' descargado.\n\nAhora puedes usar `/disenar` respondiendo a esta foto."])
             return ""
         return f"❌ Error al descargar: {output}"
     except Exception as e:
         return f"❌ Error procesando la búsqueda: {e}"
 
+
 def _handle_disenar_sin_foto(msg, sender_id, run_tool):
     return "📸 El comando `/disenar` necesita una *foto adjunta*.\n\nEnvía una foto de tu circuito con el caption `/disenar [descripción]`.\nEjemplo: adjunta la foto y escribe `/disenar amplificador de audio`."
+
 
 COMMAND_HANDLERS = {
     "/investigar": _handle_investigar,
@@ -1320,6 +1409,7 @@ COMMAND_HANDLERS = {
     "/ollama": _handle_ollama,
     "/local": _handle_ollama,
 }
+
 
 def handle_command_text(msg, sender_id, run_tool):
     if msg.startswith("/py "):

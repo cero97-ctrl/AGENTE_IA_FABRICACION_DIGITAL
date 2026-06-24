@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from dotenv import load_dotenv
 import argparse
 import os
 import sys
@@ -12,11 +13,12 @@ try:
     import google.generativeai as genai
     import PIL.Image
 except ImportError:
-    print(json.dumps({"status": "error", "message": "Faltan librerías. Ejecuta: pip install google-generativeai pillow"}), file=sys.stderr)
+    print(json.dumps(
+        {"status": "error", "message": "Faltan librerías. Ejecuta: pip install google-generativeai pillow"}), file=sys.stderr)
     sys.exit(1)
 
-from dotenv import load_dotenv
 load_dotenv()
+
 
 def clean_response(text):
     """Limpia bloques de código markdown y espacios en blanco."""
@@ -30,6 +32,7 @@ def clean_response(text):
         if text.endswith("```"):
             text = text[:-3].strip()
     return text
+
 
 def main():
     parser = argparse.ArgumentParser(description="Analizar una imagen usando Gemini Vision.")
@@ -48,12 +51,12 @@ def main():
 
     try:
         genai.configure(api_key=api_key)
-        
+
         img = PIL.Image.open(args.image)
-        
+
         # Estrategia de Fallback: Probar varios modelos de visión si el principal falla
         models_to_try = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro']
-        
+
         response = None
         last_error = None
 
@@ -67,10 +70,10 @@ def main():
             except Exception as e:
                 last_error = e
                 continue
-        
+
         if not response:
             raise Exception(f"Todos los modelos de visión fallaron. Último error: {last_error}")
-        
+
         print(json.dumps({
             "status": "success",
             "description": clean_response(response.text)
@@ -79,6 +82,7 @@ def main():
     except Exception as e:
         print(json.dumps({"status": "error", "message": str(e)}))
         sys.exit(1)
+
 
 if __name__ == "__main__":
     main()

@@ -5,6 +5,7 @@ import os
 import json
 import subprocess
 
+
 def main():
     parser = argparse.ArgumentParser(description="Genera un diseño de circuito (JSON) a partir de texto.")
     parser.add_argument("--prompt", required=True, help="Descripción del circuito.")
@@ -30,15 +31,15 @@ Devuelve SÓLO el JSON con la siguiente estructura:
   ]
 }}
 """
-    
+
     script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "chat_with_llm.py")
     cmd = [sys.executable, script_path, "--prompt", design_prompt]
-    
+
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, check=False)
         if result.stderr:
-             print(f"   [LOG chat_with_llm]: {result.stderr.strip()}", file=sys.stderr)
-        
+            print(f"   [LOG chat_with_llm]: {result.stderr.strip()}", file=sys.stderr)
+
         try:
             response = json.loads(result.stdout)
             if "content" in response:
@@ -46,10 +47,11 @@ Devuelve SÓLO el JSON con la siguiente estructura:
             else:
                 print(json.dumps({"status": "error", "message": response.get("error", "Unknown error from LLM")}))
         except json.JSONDecodeError:
-             print(json.dumps({"status": "error", "message": "Invalid JSON from chat_with_llm", "details": result.stdout}))
+            print(json.dumps({"status": "error", "message": "Invalid JSON from chat_with_llm", "details": result.stdout}))
 
     except Exception as e:
         print(json.dumps({"status": "error", "message": str(e)}))
+
 
 if __name__ == "__main__":
     main()

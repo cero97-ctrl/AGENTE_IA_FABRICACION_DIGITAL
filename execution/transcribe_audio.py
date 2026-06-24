@@ -11,6 +11,7 @@ except ImportError:
     print(json.dumps({"status": "error", "message": "Faltan librerías. Ejecuta: pip install SpeechRecognition pydub"}))
     sys.exit(1)
 
+
 def main():
     parser = argparse.ArgumentParser(description="Transcribir archivo de audio a texto.")
     parser.add_argument("--file", required=True, help="Ruta al archivo de audio.")
@@ -46,6 +47,7 @@ def main():
     finally:
         if os.path.exists(wav_path):
             os.remove(wav_path)
+
 
 if __name__ == "__main__":
     main()

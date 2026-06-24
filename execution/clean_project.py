@@ -16,7 +16,7 @@ def main():
     clean_out_script_path = os.path.join(script_dir, "clean_out.sh")
     if os.path.exists(clean_out_script_path):
         print("   - Ejecutando script de limpieza para .out/...", file=sys.stderr)
-        os.chmod(clean_out_script_path, 0o755) # Asegurar que sea ejecutable
+        os.chmod(clean_out_script_path, 0o755)  # Asegurar que sea ejecutable
         result = subprocess.run([clean_out_script_path], capture_output=True, text=True)
         if result.returncode != 0:
             print(f"     ⚠️ Error en clean_out.sh: {result.stderr}", file=sys.stderr)

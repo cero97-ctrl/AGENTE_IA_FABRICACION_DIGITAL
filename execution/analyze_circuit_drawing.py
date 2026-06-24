@@ -5,6 +5,7 @@ import os
 import subprocess
 import json
 
+
 def run_tool(script, args):
     """Ejecuta una herramienta del framework y devuelve su salida JSON."""
     script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), script)
@@ -16,6 +17,7 @@ def run_tool(script, args):
         return json.loads(result.stdout)
     except Exception as e:
         return {"status": "error", "message": str(e)}
+
 
 def main():
     parser = argparse.ArgumentParser(description="Analiza un dibujo de circuito y su función.")
@@ -41,6 +43,7 @@ Devuelve SÓLO el JSON con la siguiente estructura:
 """
     res = run_tool("analyze_image.py", ["--image", args.image, "--prompt", analysis_prompt])
     print(json.dumps(res, indent=2))
+
 
 if __name__ == "__main__":
     main()

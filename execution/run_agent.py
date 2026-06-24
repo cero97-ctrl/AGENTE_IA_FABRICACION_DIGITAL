@@ -17,8 +17,10 @@ class Colors:
     ENDC = '\033[0m'
     BOLD = '\033[1m'
 
+
 # Ruta base para ejecución robusta (directorio donde reside este script)
 EXECUTION_DIR = os.path.dirname(os.path.abspath(__file__))
+
 
 def type_effect(text, delay=0.01):
     """Simula el efecto de escritura de una IA."""
@@ -93,12 +95,12 @@ def main():
                     print(f"{Colors.FAIL}Uso: /ingest <nombre_archivo_en_docs>{Colors.ENDC}")
                     continue
                 filename = parts[1]
-                
+
                 print(f"{Colors.WARNING}⚙️  Procesando documento {filename}...{Colors.ENDC}")
-                
+
                 # 1. Leer archivo (usando Sandbox para consistencia con directiva)
                 path_in_container = f"/mnt/docs/{filename}"
-                
+
                 if filename.lower().endswith(".pdf"):
                     read_code = (
                         f"from pypdf import PdfReader; "
@@ -107,40 +109,41 @@ def main():
                     )
                 else:
                     read_code = f"with open('{path_in_container}', 'r', encoding='utf-8') as f: print(f.read())"
-                
+
                 # Ejecutar run_sandbox.py
                 sandbox_script = os.path.join(EXECUTION_DIR, "run_sandbox.py")
                 proc_read = subprocess.run(
                     [sys.executable, sandbox_script, "--code", read_code],
                     capture_output=True, text=True
                 )
-                
+
                 try:
                     res_read = json.loads(proc_read.stdout)
                     if res_read.get("status") == "success":
                         content = res_read.get("stdout", "")
                         if not content.strip():
-                             print(f"{Colors.FAIL}❌ El archivo está vacío o no se pudo leer.{Colors.ENDC}")
+                            print(f"{Colors.FAIL}❌ El archivo está vacío o no se pudo leer.{Colors.ENDC}")
                         else:
                             # 2. Guardar en memoria
                             full_text = f"Contenido del documento '{filename}':\n\n{content}"
                             save_script = os.path.join(EXECUTION_DIR, "save_memory.py")
-                            
+
                             print(f"{Colors.WARNING}💾 Guardando en memoria vectorial...{Colors.ENDC}")
                             proc_save = subprocess.run(
                                 [sys.executable, save_script, "--text", full_text, "--category", "document_knowledge"],
                                 capture_output=True, text=True
                             )
                             res_save = json.loads(proc_save.stdout)
-                            
+
                             if res_save.get("status") == "success":
                                 print(f"{Colors.GREEN}✅ Documento '{filename}' ingestado correctamente.{Colors.ENDC}")
                             else:
                                 print(f"{Colors.FAIL}❌ Error al guardar: {res_save.get('error_message')}{Colors.ENDC}")
                     else:
-                        print(f"{Colors.FAIL}❌ Error leyendo archivo: {res_read.get('message')}\nStderr: {res_read.get('stderr')}{Colors.ENDC}")
+                        print(
+                            f"{Colors.FAIL}❌ Error leyendo archivo: {res_read.get('message')}\nStderr: {res_read.get('stderr')}{Colors.ENDC}")
                 except json.JSONDecodeError:
-                     print(f"{Colors.FAIL}❌ Error decodificando salida del sandbox.{Colors.ENDC}")
+                    print(f"{Colors.FAIL}❌ Error decodificando salida del sandbox.{Colors.ENDC}")
 
             elif user_input.lower() in ["/telegram", "telegram"]:
                 run_script("listen_telegram.py")

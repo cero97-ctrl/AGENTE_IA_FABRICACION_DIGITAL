@@ -2,6 +2,7 @@ import os
 import shutil
 import subprocess
 
+
 def main():
     """
     Prepara un proyecto clonado desde la plantilla para un nuevo uso.
@@ -10,7 +11,7 @@ def main():
     3. Limpia la memoria del agente y archivos temporales (.tmp/).
     """
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    
+
     print("🧹 Limpiando el proyecto para un nuevo comienzo...")
 
     # 1. Eliminar .git para empezar un nuevo historial
@@ -60,6 +61,7 @@ def main():
     print("\nPróximos pasos recomendados:")
     print("   1. Edita `README.md` para describir tu nuevo proyecto.")
     print("   2. Crea tu primer commit: `git add .` y `git commit -m 'Initial commit'`")
+
 
 if __name__ == "__main__":
     main()

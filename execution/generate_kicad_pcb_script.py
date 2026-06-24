@@ -12,6 +12,7 @@ import sys
 # Este script NO importa pcbnew directamente, ya que está diseñado para
 # generar otro script que SÍ lo importará dentro de KiCad.
 
+
 def generate_pcb_script(design_json_path, output_script_path, width=150, height=100, margin=25):
     """
     Crea un script Python para KiCad PCB Editor.
@@ -365,8 +366,10 @@ def generate_pcb_script(design_json_path, output_script_path, width=150, height=
         print(json.dumps({"status": "error", "message": f"Error escribiendo script de PCB: {e}"}))
         sys.exit(1)
 
+
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Genera un script Python para crear un archivo KiCad PCB (.kicad_pcb).")
+    parser = argparse.ArgumentParser(
+        description="Genera un script Python para crear un archivo KiCad PCB (.kicad_pcb).")
     parser.add_argument("--json", required=True, help="Ruta al archivo JSON de diseño.")
     parser.add_argument("--output", required=True, help="Ruta de salida para el script Python generado.")
     parser.add_argument("--width", type=int, default=150, help="Ancho de la placa en mm.")

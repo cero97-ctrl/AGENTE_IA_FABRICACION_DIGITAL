@@ -40,13 +40,13 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 try:
     from db_manager import add_chat_message, get_chat_history, clear_chat_history
 except ImportError:
-    pass # Se manejará si falla al llamar las funciones
+    pass  # Se manejará si falla al llamar las funciones
 
 # Importar conector de OpenRouter
 try:
     from chat_openrouter import chat_openrouter
 except ImportError:
-    pass # Se manejará si falla al llamar las funciones
+    pass  # Se manejará si falla al llamar las funciones
 
 DEFAULT_SYSTEM_INSTRUCTION = (
     "Eres un asistente de IA de élite actuando como el 'Cerebro' (Capa de Orquestación) en un sistema de diseño electrónico y fabricación digital. "
@@ -57,6 +57,7 @@ DEFAULT_SYSTEM_INSTRUCTION = (
     "2. En chat general, sé técnico, preciso y conciso.\n"
     "3. Si tu proveedor es Google, identifícate como Gemini. Si es Groq, asume la identidad de Llama sin mencionar a Gemini."
 )
+
 
 def clean_llm_response(text):
     """Limpia bloques de código markdown y espacios en blanco para asegurar datos puros."""
@@ -71,28 +72,29 @@ def clean_llm_response(text):
 
     return text.strip()
 
+
 def get_memory_context(query):
     """Busca contexto relevante en la memoria vectorial (ChromaDB)."""
     if not chromadb:
         print("⚠️  [RAG] ChromaDB no instalado o no importado.", file=sys.stderr)
         return None
-        
+
     try:
         # Ruta a la base de datos (mismo path que save_memory.py)
         db_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".tmp", "chroma_db")
-        
+
         if not os.path.exists(db_path):
             print(f"⚠️  [RAG] No se encontró base de datos en: {db_path}", file=sys.stderr)
             return None
 
         client = chromadb.PersistentClient(path=db_path)
         collection = client.get_or_create_collection(name='agent_memory')
-        
+
         results = collection.query(
             query_texts=[query],
-            n_results=3 # Recuperar los 3 recuerdos más relevantes
+            n_results=3  # Recuperar los 3 recuerdos más relevantes
         )
-        
+
         documents = results.get('documents', [[]])[0]
         if documents:
             # Deduplicar resultados preservando el orden
@@ -102,7 +104,7 @@ def get_memory_context(query):
                 if doc not in seen:
                     unique_docs.append(doc)
                     seen.add(doc)
-            
+
             preview = unique_docs[0][:60] + "..." if len(unique_docs[0]) > 60 else unique_docs[0]
             print(f"🧠 [RAG] Contexto inyectado ({len(unique_docs)} items): '{preview}'", file=sys.stderr)
             return "\n".join([f"- {doc}" for doc in unique_docs])
@@ -111,6 +113,7 @@ def get_memory_context(query):
     except Exception as e:
         print(f"❌ [RAG] Error al consultar memoria: {e}", file=sys.stderr)
     return None
+
 
 def chat_openai(messages, model="gpt-4o-mini", system_instruction=None):
     api_key = os.getenv("OPENAI_API_KEY")
@@ -165,30 +168,33 @@ def chat_anthropic(messages, model="claude-3-5-sonnet-20240620", system_instruct
     except Exception as e:
         return {"error": str(e)}
 
+
 def chat_ollama(messages, model=None, system_instruction=None):
     """Conector para modelos locales vía Ollama."""
     base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-    
+
     # Monitoreo preventivo de RAM
     if psutil:
         mem = psutil.virtual_memory()
         swap = psutil.swap_memory()
         # Obtener carga del sistema (1, 5, 15 min). Load1 es el más útil aquí.
         load1, _, _ = os.getloadavg() if hasattr(os, 'getloadavg') else (0, 0, 0)
-        
+
         if mem.percent > 90:
-            print(f"⚠️  [Ollama] Alerta de memoria: {mem.percent}% en uso. La respuesta local podría ser lenta.", file=sys.stderr)
-        
+            print(
+                f"⚠️  [Ollama] Alerta de memoria: {mem.percent}% en uso. La respuesta local podría ser lenta.", file=sys.stderr)
+
         swap_total_gb = swap.total / (1024**3)
         swap_used_gb = swap.used / (1024**3)
-        print(f"📊 [Recursos] Load: {load1:.2f} | RAM Disp: {mem.available / (1024**3):.2f} GB | Swap: {swap_used_gb:.2f}/{swap_total_gb:.2f} GB ({swap.percent}%)", file=sys.stderr)
+        print(
+            f"📊 [Recursos] Load: {load1:.2f} | RAM Disp: {mem.available / (1024**3):.2f} GB | Swap: {swap_used_gb:.2f}/{swap_total_gb:.2f} GB ({swap.percent}%)", file=sys.stderr)
         if swap.percent > 50:
             print(f"ℹ️  [Recursos] El sistema está comprimiendo memoria (ZRAM/Swap activa).", file=sys.stderr)
 
     target_model = model or os.getenv("OLLAMA_MODEL", "gemma:2b")
-    
+
     sys_msg = system_instruction or DEFAULT_SYSTEM_INSTRUCTION
-    
+
     payload = {
         "model": target_model,
         "messages": [
@@ -201,16 +207,17 @@ def chat_ollama(messages, model=None, system_instruction=None):
     }
 
     try:
-        # Incrementamos el timeout a 300 segundos (5 minutos) 
+        # Incrementamos el timeout a 300 segundos (5 minutos)
         # para dar margen en sistemas con CPU-only y alta carga.
         resp = requests.post(f"{base_url}/api/chat", json=payload, timeout=300)
         if not resp.ok:
             return {"error": f"Ollama Error ({resp.status_code}): {resp.text}"}
-            
+
         result = resp.json()
         return {"content": clean_llm_response(result['message']['content'])}
     except Exception as e:
         return {"error": f"No se pudo conectar con Ollama en {base_url}: {str(e)}"}
+
 
 def chat_deepseek(messages, model="deepseek-chat", system_instruction=None):
     """Conector para la API de DeepSeek."""
@@ -240,6 +247,7 @@ def chat_deepseek(messages, model="deepseek-chat", system_instruction=None):
     except Exception as e:
         return {"error": str(e)}
 
+
 def chat_groq(messages, model="llama-3.3-70b-versatile", system_instruction=None):
     api_key = os.getenv("GROQ_API_KEY")
     if not api_key:
@@ -249,7 +257,7 @@ def chat_groq(messages, model="llama-3.3-70b-versatile", system_instruction=None
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json"
     }
-    
+
     # Sanitizar mensajes para evitar errores de formato (ej. campos extra o nulos)
     clean_messages = []
     for m in messages:
@@ -270,14 +278,15 @@ def chat_groq(messages, model="llama-3.3-70b-versatile", system_instruction=None
 
     try:
         resp = requests.post("https://api.groq.com/openai/v1/chat/completions", headers=headers, json=data, timeout=30)
-        
+
         if not resp.ok:
             return {"error": f"Groq API Error ({resp.status_code}): {resp.text}"}
-            
+
         result = resp.json()
         return {"content": clean_llm_response(result['choices'][0]['message']['content'])}
     except Exception as e:
         return {"error": str(e)}
+
 
 def chat_gemini(messages, model="gemini-2.0-flash", system_instruction=None):
     if not genai:
@@ -311,11 +320,11 @@ def chat_gemini(messages, model="gemini-2.0-flash", system_instruction=None):
 
         # Estrategia de Fallback: Intentar modelos alternativos si el principal falla
         models_to_try = [model]
-        
+
         # Obtener fallbacks de variable de entorno o usar lista por defecto
         env_fallbacks = os.getenv("GEMINI_FALLBACK_MODELS", "gemini-2.0-flash,gemini-flash-latest,gemini-pro-latest")
         fallbacks = [fb.strip() for fb in env_fallbacks.split(",")]
-        
+
         for fb in fallbacks:
             if fb != model:
                 models_to_try.append(fb)
@@ -341,7 +350,7 @@ def chat_gemini(messages, model="gemini-2.0-flash", system_instruction=None):
 def main():
     """
     Orquestador principal para la comunicación con LLMs.
-    
+
     Realiza las siguientes tareas críticas:
     1. Gestión de Memoria (RAG): Consulta ChromaDB para inyectar recuerdos relevantes.
     2. Gestión de Historial: Recupera los últimos mensajes de la base de datos SQLite.
@@ -352,15 +361,17 @@ def main():
          (ej. logs o netlists masivas).
     4. Estrategia de Fallback: Intenta múltiples proveedores (Groq, OpenRouter, Gemini, OpenAI) 
        en orden de prioridad si ocurren fallos de red o cuotas agotadas.
-    
+
     Args:
         --prompt (str): Mensaje del usuario o instrucción de la directiva.
     """
     parser = argparse.ArgumentParser(description="Enviar un prompt a un LLM.")
     parser.add_argument("--prompt", required=True, help="El mensaje para el LLM.")
-    parser.add_argument("--provider", choices=["openai", "anthropic", "gemini", "groq", "openrouter", "deepseek", "ollama"], help="Proveedor de IA.")
+    parser.add_argument("--provider", choices=["openai", "anthropic", "gemini",
+                        "groq", "openrouter", "deepseek", "ollama"], help="Proveedor de IA.")
     parser.add_argument("--memory-query", help="Texto específico para buscar en memoria (si es diferente al prompt).")
-    parser.add_argument("--memory-only", action="store_true", help="Solo consulta la memoria y devuelve el resultado directo sin llamar al LLM.")
+    parser.add_argument("--memory-only", action="store_true",
+                        help="Solo consulta la memoria y devuelve el resultado directo sin llamar al LLM.")
     parser.add_argument("--no-rag", action="store_true", help="Desactiva la búsqueda en memoria (RAG).")
     parser.add_argument("--system", help="Instrucción del sistema (personalidad).")
     args = parser.parse_args()
@@ -384,7 +395,7 @@ def main():
         return
 
     add_chat_message("user", args.prompt)
-    raw_history = get_chat_history(limit=20) 
+    raw_history = get_chat_history(limit=20)
 
     # --- GESTIÓN DINÁMICA DE CONTEXTO ---
     soft_cap = int(os.getenv("CONTEXT_SOFT_CAP_MESSAGES", "12"))
@@ -393,28 +404,29 @@ def main():
     # Si el historial es muy largo, comprimimos los mensajes intermedios para ahorrar ventana
     if len(raw_history) > soft_cap:
         print(f"✂️  [Context] Comprimiendo historial ({len(raw_history)} mensajes)...", file=sys.stderr)
-        # Mantenemos los 2 primeros (contexto inicial), los últimos 5 (flujo actual) 
+        # Mantenemos los 2 primeros (contexto inicial), los últimos 5 (flujo actual)
         # y el resto debería idealmente resumirse. Aquí hacemos un truncado inteligente.
-        history = raw_history[:2] + [{"role": "system", "content": "... [Historial antiguo omitido para optimizar contexto] ..."}] + raw_history[-8:]
+        history = raw_history[:2] + [{"role": "system",
+                                      "content": "... [Historial antiguo omitido para optimizar contexto] ..."}] + raw_history[-8:]
     else:
         history = raw_history
 
     # Verificación de tamaño aproximado (evitar prompts masivos)
     total_chars = sum(len(str(m.get('content', ''))) for m in history)
-    if total_chars > hard_cap: # Umbral de seguridad aproximado
+    if total_chars > hard_cap:  # Umbral de seguridad aproximado
         print(f"⚠️  [Context] Prompt muy largo ({total_chars} chars). Aplicando poda de emergencia.", file=sys.stderr)
         # Si el prompt es demasiado grande, reducimos agresivamente el historial
-        history = [history[0]] + history[-3:] 
+        history = [history[0]] + history[-3:]
 
     # Creamos una copia de los mensajes para enviar al LLM con el contexto inyectado,
     # pero SIN ensuciar el historial guardado en disco.
-    messages_for_llm = [dict(msg) for msg in history] # Deep copy simple
+    messages_for_llm = [dict(msg) for msg in history]  # Deep copy simple
 
     # --- RAG: Inyección de Memoria (si no está desactivado) ---
     if not args.no_rag:
         # Si se proporciona --memory-query, usarla para la búsqueda. Si no, usar el prompt completo.
         query_for_memory = args.memory_query if args.memory_query else args.prompt
-        
+
         if args.memory_query:
             print(f"🧠 [RAG] Usando query optimizada: '{query_for_memory}'", file=sys.stderr)
 
@@ -433,7 +445,7 @@ PREGUNTA DEL USUARIO:
 
     # Definir lista de proveedores a intentar en orden de prioridad
     providers_to_try = []
-    
+
     if args.provider:
         # Si el usuario fuerza uno, solo intentamos ese
         providers_to_try.append(args.provider)
@@ -451,7 +463,7 @@ PREGUNTA DEL USUARIO:
         for env_var, provider_name in priority_map.items():
             if os.getenv(env_var) and os.getenv(env_var).strip():
                 providers_to_try.append(provider_name)
-            
+
     if not providers_to_try:
         print(json.dumps({"error": "No hay API Keys configuradas en .env"}))
         return
@@ -473,19 +485,20 @@ PREGUNTA DEL USUARIO:
                 try:
                     result = chat_openrouter(messages_for_llm, system_instruction=args.system)
                 except NameError:
-                    result = {"error": "El proveedor 'openrouter' no está disponible (no se pudo importar chat_openrouter.py)."}
+                    result = {
+                        "error": "El proveedor 'openrouter' no está disponible (no se pudo importar chat_openrouter.py)."}
             elif provider == "ollama":
                 result = chat_ollama(messages_for_llm, system_instruction=args.system)
-            
+
             # Si tuvimos éxito (hay contenido y no error), salimos del bucle
             if "content" in result and "error" not in result:
                 print(f"🤖 [LLM] Respuesta generada por: {provider.upper()}", file=sys.stderr)
                 break
-            
+
             # Si falló, logueamos en stderr (para no ensuciar el JSON de stdout) y seguimos
             error_msg = result.get("error", "Error desconocido")
             print(f"⚠️ Proveedor '{provider}' falló: {error_msg}. Intentando siguiente...", file=sys.stderr)
-            
+
         except Exception as e:
             print(f"⚠️ Excepción crítica en '{provider}': {e}. Intentando siguiente...", file=sys.stderr)
             result = {"error": str(e)}

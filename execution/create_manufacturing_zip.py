@@ -4,6 +4,7 @@ import zipfile
 import os
 import sys
 
+
 def main():
     parser = argparse.ArgumentParser(description="Crear un archivo ZIP con los Gerbers y Drills.")
     parser.add_argument("--files", nargs='+', required=True, help="Lista de archivos a incluir.")
@@ -35,12 +36,13 @@ def main():
                     zf.write(file, os.path.basename(file))
                 else:
                     print(f"   ⚠️ Advertencia: Archivo no encontrado: {file}")
-        
-        print(output_path) # Imprimir ruta final para el bot
+
+        print(output_path)  # Imprimir ruta final para el bot
 
     except Exception as e:
         print(f"❌ Error creando ZIP: {e}")
         sys.exit(1)
+
 
 if __name__ == "__main__":
     main()

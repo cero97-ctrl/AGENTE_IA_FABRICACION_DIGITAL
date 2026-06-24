@@ -71,7 +71,7 @@ Markdown. Usa encabezados para separar secciones (Resumen, Análisis Detallado, 
         # Crear un nombre único basado en la ruta relativa para evitar sobrescrituras
         relative_path = os.path.relpath(file_path, project_root).replace(os.sep, '_')
         filename_no_ext = os.path.splitext(relative_path)[0]
-        
+
         output_file_name = f"Explicacion_{filename_no_ext}.md"
         output_file_path = os.path.join(docs_dir, output_file_name)
 

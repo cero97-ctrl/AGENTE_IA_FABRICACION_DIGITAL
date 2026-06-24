@@ -4,6 +4,7 @@ import subprocess
 import sys
 import os
 
+
 def run_command(command, check=True):
     try:
         result = subprocess.run(command, check=check, text=True, capture_output=True)
@@ -15,13 +16,14 @@ def run_command(command, check=True):
             sys.exit(1)
         return None
 
+
 def main():
     parser = argparse.ArgumentParser(description="Actualiza solo el núcleo del framework desde la plantilla.")
     parser.add_argument("--template-url", required=True, help="URL del repositorio plantilla")
     parser.add_argument("--branch", default="main", help="Rama de la plantilla a usar")
-    
+
     args = parser.parse_args()
-    
+
     print(f"🔄 Actualizando Núcleo del Framework desde: {args.template_url}")
 
     # 1. Configurar remote
@@ -38,7 +40,7 @@ def main():
     # 3. Checkout selectivo (Solo execution/ y .agent/)
     # Esto sobrescribe los scripts del framework con los de la plantilla, pero respeta directives/ de usuario
     paths_to_update = ["execution", ".agent", "requirements.txt", "setup.sh", ".gitignore"]
-    
+
     print("📦 Actualizando archivos del núcleo...")
     try:
         # git checkout template/main -- path/to/file
@@ -49,6 +51,7 @@ def main():
     except Exception as e:
         print(f"❌ Error durante la actualización: {e}")
         sys.exit(1)
+
 
 if __name__ == "__main__":
     main()

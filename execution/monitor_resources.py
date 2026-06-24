@@ -12,6 +12,7 @@ except ImportError:
         {"status": "error", "message": "Librería 'psutil' no encontrada. Instala con: pip install psutil"}), file=sys.stderr)
     sys.exit(1)
 
+
 def get_zram_stats():
     """Intenta obtener estadísticas detalladas de ZRAM si está disponible."""
     try:
@@ -24,10 +25,11 @@ def get_zram_stats():
         pass
     return []
 
+
 def get_gpu_status():
     """Verifica si hay una GPU NVIDIA presente y funcional usando nvidia-smi."""
     try:
-        res = subprocess.run(['nvidia-smi', '--query-gpu=name,memory.used,memory.total,utilization.gpu', '--format=csv,noheader,nounits'], 
+        res = subprocess.run(['nvidia-smi', '--query-gpu=name,memory.used,memory.total,utilization.gpu', '--format=csv,noheader,nounits'],
                              capture_output=True, text=True, timeout=2)
         if res.returncode == 0:
             parts = res.stdout.strip().split(',')
@@ -67,7 +69,7 @@ def main():
 
     if mem_usage > args.mem_threshold:
         alerts.append(f"Memoria Alta: {mem_usage}% (Umbral: {args.mem_threshold}%)")
-        
+
     if disk_usage > 90.0:
         alerts.append(f"Disco Casi Lleno: {disk_usage}%")
 

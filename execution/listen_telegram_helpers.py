@@ -21,20 +21,25 @@ PERSONAS = {
     "frances": "Tu es un assistant IA créé par le Prof. César Rodríguez. Tu résides sur un PC GNU/Linux. Réponds toujours en français, de manière gentille, claire et concise."
 }
 
+
 def get_current_persona():
     if os.path.exists(PERSONA_FILE):
         with open(PERSONA_FILE, 'r') as f:
             return f.read().strip()
     return PERSONAS["default"]
 
+
 def set_persona(persona_key):
     with open(PERSONA_FILE, 'w') as f:
         f.write(PERSONAS.get(persona_key, PERSONAS["default"]))
 
+
 def save_user(chat_id):
     """Registra el ID del usuario para futuros broadcasts."""
-    if not chat_id: return
+    if not chat_id:
+        return
     add_user(chat_id)
+
 
 def load_config():
     if os.path.exists(CONFIG_FILE):
@@ -45,9 +50,11 @@ def load_config():
             return {}
     return {}
 
+
 def save_config(config):
     with open(CONFIG_FILE, 'w') as f:
         json.dump(config, f)
+
 
 def check_reminders():
     """Comprueba y envía los recordatorios pendientes desde la base de datos."""
@@ -62,10 +69,11 @@ def check_reminders():
             if reminder['reminder_time'] == current_time_str and reminder['last_sent_date'] != today_str:
                 chat_id = reminder['chat_id']
                 message = reminder['message']
-                
+
                 print(f"   ⏰ [DB] Enviando recordatorio a {chat_id}: '{message}'")
-                res = run_tool("telegram_tool.py", ["--action", "send", "--message", f"⏰ *RECORDATORIO:*\n{message}", "--chat-id", chat_id])
-                
+                res = run_tool("telegram_tool.py", ["--action", "send", "--message",
+                               f"⏰ *RECORDATORIO:*\n{message}", "--chat-id", chat_id])
+
                 if res and res.get("status") == "success":
                     # Actualizar la base de datos para no volver a enviar hoy
                     update_reminder_sent_date(reminder['id'], today_str)
@@ -74,16 +82,17 @@ def check_reminders():
     except Exception as e:
         print(f"   [!] Error en check_reminders: {e}")
 
+
 def run_tool(script, args):
     """Ejecuta una herramienta del framework y devuelve su salida JSON."""
     script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), script)
     cmd = [sys.executable, script_path] + args
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, check=False)
-        
+
         if result.stderr:
             print(f"   🛠️  [LOG {script}]: {result.stderr.strip()}")
-        
+
         try:
             return json.loads(result.stdout)
         except json.JSONDecodeError:
